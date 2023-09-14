@@ -2,11 +2,20 @@ from tqdm import tqdm
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
-from openff.recharge.esp.psi4 import Psi4ESPGenerator
+#from openff.recharge.esp.psi4 import Psi4ESPGenerator
+from openff_psi4_debug import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
+from openff.units.elements import SYMBOLS
+import os
+import numpy as np
+import random
 
+
+cwd = os.getcwd()
+
+xyz_conf_check = False
 
 def main():
     # Load in the molecule that we would like to generate the electrostatic properties
@@ -29,6 +38,30 @@ def main():
     conformers = ConformerGenerator.generate(
         molecule, ConformerSettings(max_conformers=10)
     )
+    
+    random.shuffle(conformers)
+
+    #conformer xyz files to check for strainge geometries
+    if xyz_conf_check:
+        for number ,conformer in enumerate(conformers):
+            atoms = [
+                    {
+                        "element": SYMBOLS[atom.atomic_number],
+                        "x": conformer[index, 0],
+                        "y": conformer[index, 1],
+                        "z": conformer[index, 2],
+                    }
+                    for index, atom in enumerate(molecule.atoms)
+                ]
+            xyz = f'{molecule.n_atoms}\n{molecule.to_smiles()}\n'
+            for row in atoms:
+                xyz += f"{row['element']}\t{np.around(row['x'].magnitude,decimals=6)}\t{np.around(row['y'].magnitude,decimals=6)}\t{np.around(row['z'].magnitude, decimals=6)}\n"
+            f = open(cwd+f"/conformer_{number}.xyz", 'x')
+            f.write(xyz)
+            f.close()
+    
+    #Sheffle the list to check 
+
 
     # Create a database to store the computed electrostatic properties in to make
     # training and testing against the data easier.
