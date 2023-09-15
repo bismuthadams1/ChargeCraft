@@ -1,0 +1,49 @@
+Going to run_level 2: Red. Int., RFO, 2 backstep, smaller trust. ~
+Going to run_level 3: Red. Int. + XYZ, RFO, 2 backstep, smaller trust. ~
+Traceback (most recent call last):
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/bin/psi4", line 372, in <module>
+    exec(content)
+  File "<string>", line 40, in <module>
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/driver.py", line 1245, in optimize
+    G, wfn = gradient(lowername, return_wfn=True, molecule=molecule, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/driver.py", line 639, in gradient
+    wfn = procedures['gradient'][lowername](lowername, molecule=molecule, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/proc.py", line 93, in select_scf_gradient
+    return func(name, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/proc.py", line 2674, in run_scf_gradient
+    ref_wfn = run_scf(name, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/proc.py", line 2574, in run_scf
+    scf_wfn = scf_helper(name, post_scf=False, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/proc.py", line 1873, in scf_helper
+    e_scf = scf_wfn.compute_energy()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/scf_proc/scf_iterator.py", line 92, in scf_compute_energy
+    raise e
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/scf_proc/scf_iterator.py", line 85, in scf_compute_energy
+    self.iterations()
+  File "/mnt/nfs/home/nca121/.conda/envs/p4env/lib/python3.11/site-packages/psi4/driver/procrouting/scf_proc/scf_iterator.py", line 526, in scf_iterate
+    raise SCFConvergenceError("""SCF iterations""", self.iteration_, self, Ediff, Dnorm)
+
+psi4.driver.p4util.exceptions.SCFConvergenceError: Could not converge SCF iterations in 100 iterations.
+
+Printing out the relevant lines from the Psithon --> Python processed input file:
+      H -0.443421751 -0.582687497 -3.540498734
+    ""","mol")
+    core.IO.set_default_namespace("mol")
+    core.set_global_option("BASIS", "6-31G*")
+    core.set_global_option("DYNAMIC_LEVEL", 1)
+--> optimize('scf')
+    E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)
+
+
+!-------------------------------------------------------!
+!                                                       !
+!  Could not converge SCF iterations in 100 iterations. !
+!                                                       !
+!-------------------------------------------------------!
+
