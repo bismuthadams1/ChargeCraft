@@ -39,6 +39,7 @@ def main():
         molecule, ConformerSettings(max_conformers=10)
     )
     
+    #Sheffle the list to check 
     random.shuffle(conformers)
 
     #conformer xyz files to check for strainge geometries
@@ -60,7 +61,6 @@ def main():
             f.write(xyz)
             f.close()
     
-    #Sheffle the list to check 
 
 
     # Create a database to store the computed electrostatic properties in to make

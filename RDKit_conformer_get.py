@@ -5,7 +5,7 @@ import numpy
 from openff.units import unit
 
 
-def generate(molecule, no_conformers = 10):
+def generate(molecule: "Molecule", no_conformers: int = 10) -> list(numpy.array):
 
     rdmol = molecule.to_rdkit()
     AllChem.EmbedMultipleConfs(rdmol, numConfs=no_conformers, randomSeed=42)

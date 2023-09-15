@@ -30,6 +30,7 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
+        error_handle: int = 1
     ) -> str:
         """Generate the input files for Psi4.
 
