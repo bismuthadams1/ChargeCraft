@@ -30,7 +30,7 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
-        error_handle: int = 1
+        dynamic_level: int = 1
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -102,6 +102,7 @@ class Psi4ESPGenerator(ESPGenerator):
             "dft_settings": settings.psi4_dft_grid_settings.value,
             "minimize": minimize,
             "properties": str(properties),
+            "dynamic_level": dynamic_level
         }
 
         if enable_pcm:

@@ -9,8 +9,7 @@ class ReadInput:
     @classmethod
     def _read_smiles(cls,
     smi: str
-    ) -> list(str):
-        
+    ) -> list[str]:
         smiles = []
         with open(smi, "r") as input:
             for mols in input:
