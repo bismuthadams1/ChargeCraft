@@ -13,7 +13,7 @@ class generate_esps:
     def __init__(
               self, 
               molecule: "Molecule",
-              conformers: list(str),
+              conformers: list[str],
               esp_settings: "ESPSettings"
               ) -> None:
         self.conformers = conformers

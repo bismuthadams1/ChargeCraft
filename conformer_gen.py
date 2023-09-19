@@ -19,7 +19,7 @@ class Conformers:
         molecule: "Molecule",
         max_conformers: int = 10,
         generation_type: str = 'openeye'
-    ) -> list(numpy.array):
+    ) -> list[numpy.array]:
         """
         Takes the molecule in and generates conformers. 
 
@@ -51,7 +51,7 @@ class Conformers:
             cls,
             molecule: "Molecule", 
             max_conformers: int
-    ) -> list(numpy.array):
+    ) -> list[numpy.array]:
 
         rdmol = molecule.to_rdkit()
         AllChem.EmbedMultipleConfs(rdmol, numConfs=max_conformers, randomSeed=42)
@@ -71,7 +71,7 @@ class Conformers:
         cls,
         molecule: "Molecule",
         max_conformers: int
-    ) -> list(numpy.array):
+    ) -> list[numpy.array]:
         
         conformers = ConformerGenerator.generate(
         molecule, ConformerSettings(max_conformers=max_conformers))
