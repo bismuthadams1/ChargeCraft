@@ -1,0 +1,38 @@
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/condabin/conda
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/bin/conda
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/bin/conda-env
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/bin/activate
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/bin/deactivate
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/etc/profile.d/conda.sh
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/etc/fish/conf.d/conda.fish
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/shell/condabin/Conda.psm1
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/shell/condabin/conda-hook.ps1
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/lib/python3.9/site-packages/xontrib/conda.xsh
+no change     /mnt/storage/apps/eb/software/Anaconda3/2021.11/etc/profile.d/conda.csh
+modified      /mnt/nfs/home/nca121/.bashrc
+
+==> For changes to take effect, close and re-open your current shell. <==
+
+
+CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
+To initialize your shell, run
+
+    $ conda init <SHELL_NAME>
+
+Currently supported shells are:
+  - bash
+  - fish
+  - tcsh
+  - xonsh
+  - zsh
+  - powershell
+
+See 'conda init --help' for more information and options.
+
+IMPORTANT: You may need to close and restart your shell after running 'conda init'.
+
+
+Traceback (most recent call last):
+  File "/mnt/storage/nobackup/nca121/test_jobs/QM_ESP_Psi4/QM_ESP_Psi4/qm_esp_debug/gaussian_test/ase_test.py", line 1, in <module>
+    from ase import Atoms
+ModuleNotFoundError: No module named 'ase'

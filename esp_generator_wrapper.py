@@ -9,7 +9,6 @@ from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 
 class generate_esps:
 
-
     def __init__(
               self, 
               molecule: "Molecule",
@@ -29,7 +28,6 @@ class generate_esps:
         for conformer in tqdm(conformers):
             # run through different error options, slowly escalate.
             dynamic_level = 0
-         #   max_error_retries = 8
             while dynamic_level < 8:
                 try:
                     conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
@@ -42,13 +40,13 @@ class generate_esps:
                     )
 
                 except Psi4Error:
-                    error += 1
                     dynamic_level =+ 1
 
                 record = MoleculeESPRecord.from_molecule(
                         self.molecule, conformer, grid, esp, electric_field, self.esp_settings
                     )
                 self.records.append(record)
+            
 
 
     def fetch_data(self):

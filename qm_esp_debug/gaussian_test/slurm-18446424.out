@@ -1,0 +1,36 @@
+Lmod has detected the following error: The following module(s) are unknown:
+"/mnt/nfs/home/nca121/mambaforge/condabin/conda"
+
+Please check the spelling or version number. Also try "module spider ..."
+It is also possible your cache file is out-of-date; it may help to try:
+  $ module --ignore-cache load "/mnt/nfs/home/nca121/mambaforge/condabin/conda"
+
+Also make sure that all modulefiles written in TCL start with the string
+#%Module
+
+
+
+Run 'mamba init' to be able to run mamba activate/deactivate
+and start a new shell session. Or use conda to activate/deactivate.
+
+/bin/sh: -c: line 0: syntax error near unexpected token `('
+/bin/sh: -c: line 0: `g09 < conformer_Atoms(symbols='OC2OCOH8', pbc=False)_opt.com > conformer_Atoms(symbols='OC2OCOH8', pbc=False)_opt.log'
+Traceback (most recent call last):
+  File "/mnt/storage/nobackup/nca121/test_jobs/QM_ESP_Psi4/QM_ESP_Psi4/qm_esp_debug/gaussian_test/ase_test.py", line 21, in <module>
+    converged = opt.run(fmax='tight', steps=100)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/mambaforge/envs/openff/lib/python3.11/site-packages/ase/calculators/gaussian.py", line 63, in run
+    self.atoms.get_potential_energy()
+  File "/mnt/nfs/home/nca121/mambaforge/envs/openff/lib/python3.11/site-packages/ase/atoms.py", line 731, in get_potential_energy
+    energy = self._calc.get_potential_energy(self)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/mambaforge/envs/openff/lib/python3.11/site-packages/ase/calculators/calculator.py", line 709, in get_potential_energy
+    energy = self.get_property('energy', atoms)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/nfs/home/nca121/mambaforge/envs/openff/lib/python3.11/site-packages/ase/calculators/calculator.py", line 737, in get_property
+    self.calculate(atoms, [name], system_changes)
+  File "/mnt/nfs/home/nca121/mambaforge/envs/openff/lib/python3.11/site-packages/ase/calculators/gaussian.py", line 116, in calculate
+    FileIOCalculator.calculate(self, *args, **kwargs)
+  File "/mnt/nfs/home/nca121/mambaforge/envs/openff/lib/python3.11/site-packages/ase/calculators/calculator.py", line 938, in calculate
+    raise CalculationFailed(msg)
+ase.calculators.calculator.CalculationFailed: Calculator "gaussian" failed with command "g09 < conformer_Atoms(symbols='OC2OCOH8', pbc=False)_opt.com > conformer_Atoms(symbols='OC2OCOH8', pbc=False)_opt.log" failed in /mnt/storage/nobackup/nca121/test_jobs/QM_ESP_Psi4/QM_ESP_Psi4/qm_esp_debug/gaussian_test with error code 1
