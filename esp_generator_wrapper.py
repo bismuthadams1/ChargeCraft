@@ -27,25 +27,34 @@ class generate_esps:
 
         for conformer in tqdm(conformers):
             # run through different error options, slowly escalate.
-            dynamic_level = 0
-            while dynamic_level < 8:
-                try:
-                    conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
-                            self.molecule,
-                            conformer,
-                            self.esp_settings,
-                            # Minimize the input conformer prior to evaluating the ESP / EF
-                            minimize=True,
-                            dynamic_level = dynamic_level
-                    )
-
-                except Psi4Error:
-                    dynamic_level =+ 1
-
+            dynamic_level = 5
+            try:
+                conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+                        self.molecule,
+                        conformer,
+                        self.esp_settings,
+                        # Minimize the input conformer prior to evaluating the ESP / EF
+                        minimize=True,
+                        dynamic_level = dynamic_level
+                )
                 record = MoleculeESPRecord.from_molecule(
-                        self.molecule, conformer, grid, esp, electric_field, self.esp_settings
-                    )
+                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings
+                )
                 self.records.append(record)
+            except Psi4Error:
+                dynamic_level =+ 1
+
+    
+    def esp_generator_wrapper(self, conformer, dynamic_level):
+        conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+                        self.molecule,
+                        conformer,
+                        self.esp_settings,
+                        # Minimize the input conformer prior to evaluating the ESP / EF
+                        minimize=True,
+                        dynamic_level = dynamic_level
+                )
+        return conformer, grid, esp, electric_field
             
 
 
