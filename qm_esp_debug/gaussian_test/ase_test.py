@@ -20,9 +20,10 @@ for conf_no in range(no_conformers):
     opt = GaussianOptimizer(conformer, calc_opt)
     converged = opt.run(fmax='tight', steps=100)
 
-    converged_info += f'conformer: {conformer} converged? {converged}\n'
+    converged_info += f'conformer: {conf_no} converged? {converged}\n'
 
 f = open(cwd+f"/gaussian_log", 'x')
+
 f.write(converged_info)
 f.close()
 

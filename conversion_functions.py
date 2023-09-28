@@ -1,6 +1,6 @@
 from openff.units.elements import SYMBOLS
 from rdkit.Chem import rdmolfiles
-import numpy 
+import numpy as np
 
 
 def conf_to_xyz_string(conformer, molecule):
@@ -18,8 +18,5 @@ def conf_to_xyz_string(conformer, molecule):
         xyz += f"{row['element']}\t{np.around(row['x'].magnitude,decimals=6)}\t{np.around(row['y'].magnitude,decimals=6)}\t{np.around(row['z'].magnitude, decimals=6)}\n"
     return xyz
 
-#def xyz_string_to_conf(xyz_string):
-    conformer = np.zeros((rdmol.GetConformer(confs).GetNumAtoms(), 3))
-    for atom_index, coordinates in enumerate(rdmol.GetConformer(confs).GetPositions()):
-        conformer[atom_index, :] = coordinates
-    conformers.append(conformer * unit.angstrom)
+def xyz_string_to_conf(xyz_string, conformer):
+    
