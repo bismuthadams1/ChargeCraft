@@ -7,3 +7,4 @@ __pycache__/RDKit_conformer_get.cpython-311.pyc
 *.com
 *.log
 *.xyz
+*.sqlite
