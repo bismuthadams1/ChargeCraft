@@ -18,5 +18,5 @@ def conf_to_xyz_string(conformer, molecule):
         xyz += f"{row['element']}\t{np.around(row['x'].magnitude,decimals=6)}\t{np.around(row['y'].magnitude,decimals=6)}\t{np.around(row['z'].magnitude, decimals=6)}\n"
     return xyz
 
-def xyz_string_to_conf(xyz_string, conformer):
+#def xyz_string_to_conf(xyz_string, conformer):
     

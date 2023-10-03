@@ -5,6 +5,7 @@ from rdkit import Chem
 import numpy
 from openff.units import unit
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
+from rdkit.Chem.rdForceFieldHelpers import MMFFOptimizeMolecule
 
 
 class Conformers:
@@ -75,7 +76,17 @@ class Conformers:
         
         conformers = ConformerGenerator.generate(
         molecule, ConformerSettings(max_conformers=max_conformers))
+        
+        [molecule.add_conformer(conf) for conf in conformers]
 
+        _clean
 
         return conformers
     
+    @classmethod
+    def _clean_conformer(cls,
+                         molecule: "Molecule") -> "Molecule":
+        rdmol =  molecule.to_rdkit()
+        MMFFOptimizeMolecule(rdmol,mmffVariant = 'MMFF94')
+        cleaned_molecule = Molecule.from_rdkit(rdmol)
+        return rdmol

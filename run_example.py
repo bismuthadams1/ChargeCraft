@@ -11,6 +11,7 @@ smiles_molecule_dict = {}
 for mol in smiles:
     molecule = smiles_to_molecule(mol)
     conformer_list = Conformers.generate(molecule)
+    [molecule.add_conformer(i) for i in conformer_list]
     smiles_molecule_dict[molecule] = conformer_list
 
 

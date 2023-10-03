@@ -18,16 +18,20 @@ class generate_esps:
               ) -> None:
         self.conformers = conformers
         self.molecule = molecule
+        self.rd_molecule = self.molecule.to_rdkit()
         self.esp_settings = esp_settings
         self.qc_data_store = MoleculeESPStore()
         self.records = []
 
     def run_esps(self, conformers):
-        for conformer in tqdm(conformers):
+        MMFFOptimizeMolecule(self.rd_molecule,mmffVariant = 'MMFF94')
+        Molecule.from
+        for conf_no,conformer in enumerate(tqdm(conformers)):
+            #The default dynamic level is 1, we've made it higher to 
             dynamic_level = 5
-            
+            #run a ff optimize for each conformer to make sure the starting structure is sensible
             try:
-                conformer, grid, esp, electric_field = self._esp_generator_wrapper( conformer, dynamic_level)
+                conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level)
             except Psi4Error:
                 #if this conformer fails, reoptimize
                 continue

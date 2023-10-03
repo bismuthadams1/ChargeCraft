@@ -10,7 +10,6 @@ from openff.toolkit.topology.molecule import FrozenMolecule
 from RDKit_conformer_get import generate
 from rdkit.Chem import AllChem
 
-
 def main():
     # Load in the molecule that we would like to generate the electrostatic properties
     # for.
