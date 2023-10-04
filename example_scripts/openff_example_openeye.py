@@ -39,7 +39,7 @@ def main():
         molecule, ConformerSettings(max_conformers=10)
     )
     
-    #Sheffle the list to check 
+    #Sheffle the list to check if the issue is with conformers or scripting error
     random.shuffle(conformers)
 
     #conformer xyz files to check for strainge geometries

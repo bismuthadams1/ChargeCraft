@@ -9,6 +9,9 @@ from rdkit.Chem import rdmolfiles
 
 
 class generate_esps:
+    """"
+    Class for Generating ESPs which wraps around the Psi4ESPGenerator class and handles errors.   
+    """
 
     def __init__(
               self, 
@@ -23,25 +26,30 @@ class generate_esps:
         self.qc_data_store = MoleculeESPStore()
         self.records = []
 
-    def run_esps(self, conformers):
-        MMFFOptimizeMolecule(self.rd_molecule,mmffVariant = 'MMFF94')
-        Molecule.from
-        for conf_no,conformer in enumerate(tqdm(conformers)):
+    def run_esps(self, 
+                conformers: list[str]) -> None:
+        """
+        
+        """
+
+        for conf_no, conformer in enumerate(tqdm(conformers)):
             #The default dynamic level is 1, we've made it higher to 
             dynamic_level = 5
             #run a ff optimize for each conformer to make sure the starting structure is sensible
             try:
                 conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level)
             except Psi4Error:
-                #if this conformer fails, reoptimize
+                #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer. 
                 continue
             record = MoleculeESPRecord.from_molecule(
                     self.molecule, conformer, grid, esp, electric_field, self.esp_settings
                 )
             self.records.append(record)
+
+        
     
     def _esp_generator_wrapper(self, conformer, dynamic_level, error_level = 0):
-         # run through different error options, slowly escalate.
+        # run through different error options, slowly escalate.
         try:
             conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
                             self.molecule,
@@ -73,7 +81,7 @@ class generate_esps:
 
         pass
 
-    def fetch_data(self):
+    def _fetch_data(self):
         self.qc_data_store.store(*self.records)
 
             # Retrieve the stored properties.

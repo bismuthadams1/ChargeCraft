@@ -4,14 +4,20 @@ from conformer_gen import Conformers
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
-smiles = ReadInput.read_smiles('test_files.smi')
 
-smiles_molecule_dict = {}
+def main():
+    
+    #Read the .smi input and add to list
+    smiles = ReadInput.read_smiles('test_files.smi')
+   
+    #Loop through molecules
+    for mol in smiles:
+        molecule = smiles_to_molecule(mol)
+        #Generate the conformers
+        conformer_list = Conformers.generate(molecule, generation_type='rdkit')
+        ESP_gen = generate_esps(molecule = molecule, conformers= conformer_list)
+        ESP_gen.run_esps()
+        
 
-for mol in smiles:
-    molecule = smiles_to_molecule(mol)
-    conformer_list = Conformers.generate(molecule)
-    [molecule.add_conformer(i) for i in conformer_list]
-    smiles_molecule_dict[molecule] = conformer_list
-
-
+if __name__ == "__main__":
+    main()

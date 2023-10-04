@@ -1,11 +1,8 @@
 from openff.toolkit import Molecule
 from rdkit.Chem import AllChem
-from openff.toolkit import Molecule
-from rdkit import Chem
 import numpy
 from openff.units import unit
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from rdkit.Chem.rdForceFieldHelpers import MMFFOptimizeMolecule
 
 
 class Conformers:
@@ -22,7 +19,7 @@ class Conformers:
         generation_type: str = 'openeye'
     ) -> list[numpy.array]:
         """
-        Takes the molecule in and generates conformers. 
+        Takes the molecule in and calls conformer generation functions. 
 
         Parameters
         ----------
@@ -44,7 +41,7 @@ class Conformers:
         elif generation_type == 'rdkit':
             return cls.openeye_gen(molecule, max_conformers)
         else:
-            return 'invalid conformer gen'
+            return 'invalid conformer generator option'
     
 
     @classmethod
@@ -53,6 +50,20 @@ class Conformers:
             molecule: "Molecule", 
             max_conformers: int
     ) -> list[numpy.array]:
+        """
+        Takes the molecule in and generates conformers using RDKit. 
+
+        Parameters
+        ----------
+        molecule
+            The molecule to generate the conformers for.
+        max_conformers
+            The number of conformers to generate.
+     
+        Returns
+        -------
+            The list of conformers.
+        """
 
         rdmol = molecule.to_rdkit()
         AllChem.EmbedMultipleConfs(rdmol, numConfs=max_conformers, randomSeed=42)
@@ -65,6 +76,10 @@ class Conformers:
                 conformer[atom_index, :] = coordinates
             conformers.append(conformer * unit.angstrom)
 
+        #Embed conformer in molecule object
+        for conf in conformers:
+            molecule.add_conformer(conf)
+
         return conformers
 
     @classmethod
@@ -73,20 +88,25 @@ class Conformers:
         molecule: "Molecule",
         max_conformers: int
     ) -> list[numpy.array]:
-        
+        """
+        Takes the molecule in and generates conformers using openeye. 
+
+        Parameters
+        ----------
+        molecule
+            The molecule to generate the conformers for.
+        max_conformers
+            The number of conformers to generate.
+     
+        Returns
+        -------
+            The list of conformers.
+        """
         conformers = ConformerGenerator.generate(
         molecule, ConformerSettings(max_conformers=max_conformers))
         
-        [molecule.add_conformer(conf) for conf in conformers]
-
-        _clean
+        #Embed conformer in molecule object
+        for conf in conformers:
+            molecule.add_conformer(conf)
 
         return conformers
-    
-    @classmethod
-    def _clean_conformer(cls,
-                         molecule: "Molecule") -> "Molecule":
-        rdmol =  molecule.to_rdkit()
-        MMFFOptimizeMolecule(rdmol,mmffVariant = 'MMFF94')
-        cleaned_molecule = Molecule.from_rdkit(rdmol)
-        return rdmol
