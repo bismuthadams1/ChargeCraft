@@ -3,7 +3,7 @@ from tqdm import tqdm
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
 #from openff.recharge.esp.psi4 import Psi4ESPGenerator
-from openff_psi4_debug import Psi4ESPGenerator
+from QM_ESP_Psi4.openff_psi4_gen import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule

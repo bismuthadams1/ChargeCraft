@@ -133,11 +133,12 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
+        dynamic_level: int
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         # Perform the calculation in a temporary directory
 
         input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize, compute_esp, compute_field
+                molecule, conformer, settings, minimize, compute_esp, compute_field, dynamic_level
             )
 
 

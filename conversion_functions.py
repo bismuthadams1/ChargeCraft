@@ -5,7 +5,7 @@ import numpy as np
 from openff.units import unit
 
 
-def conf_to_xyz_string(conformer: unit.units.Quantity, 
+def conf_to_xyz_string(conformer: unit.Quantity, 
                        molecule: "Molecule") -> str:
     """
     Converts confermer to xyz string.
@@ -38,7 +38,7 @@ def conf_to_xyz_string(conformer: unit.units.Quantity,
     return xyz
 
 def xyz_string_to_conf(xyz_string, 
-                       molecule) -> unit.units.Quantity:
+                       molecule) -> unit.Quantity:
     """
     Takes the xyz string in and generates a conformer object compatabile with the openff Molecule object with units Angstrom.
 

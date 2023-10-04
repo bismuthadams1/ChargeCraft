@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import os
+
+cwd = os.getcwd()
 
 
 class ReadInput:
@@ -23,7 +26,7 @@ class ReadInput:
         List of smiles strings.
         """
         smiles = []
-        with open(smi_file, "r") as input:
+        with open(os.path.join(cwd,smi_file), "r") as input:
             for mols in input:
                 smiles.append(mols.strip('\n'))
         
