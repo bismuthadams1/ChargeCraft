@@ -15,8 +15,9 @@ from openff.recharge.esp.exceptions import Psi4Error
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
 
+CWD = os.getcwd()
 
-class Psi4ESPGenerator(ESPGenerator):
+class Psi4ESPGenerator:
     """An class which will compute the electrostatic potential of
     a molecule using Psi4.
     """
@@ -123,17 +124,17 @@ class Psi4ESPGenerator(ESPGenerator):
         return rendered_template
 
     @classmethod
-    def _generate(
+    def generate(
         cls,
-        molecule: "Molecule",
+        molecule: "Molecule", 
         conformer: unit.Quantity,
         grid: unit.Quantity,
         settings: ESPSettings,
-        directory: str,
-        minimize: bool,
-        compute_esp: bool,
-        compute_field: bool,
-        dynamic_level: int
+        dynamic_level: int,
+        directory: str = CWD,
+        minimize: bool = True,
+        compute_esp: bool = True,
+        compute_field: bool = True,
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         # Perform the calculation in a temporary directory
 
@@ -147,16 +148,6 @@ class Psi4ESPGenerator(ESPGenerator):
             input_contents = cls._generate_input(
                 molecule, conformer, settings, minimize, compute_esp, compute_field
             )
-
-            #cls.debug(input_contents)
-
-            with open("input.dat", "w") as file:
-                file.write(input_contents)
-
-            with open("input.dat", "r") as file:
-                for lines in file:
-                    print(lines)
-
 
             # Store the grid to file.
             grid = grid.to(unit.angstrom).m
@@ -206,10 +197,6 @@ class Psi4ESPGenerator(ESPGenerator):
             )
 
         return final_coordinates, esp, electric_field
-    
-    @classmethod
-    def debug(cls,text):
-        print(text)
-        return ''
+  
 
        
