@@ -44,7 +44,7 @@ class generate_esps:
         """
 
         for conf_no, conformer in enumerate(tqdm(self.conformers)):
-            print(f'conformer {conf_no} for {self.molecule.name}')
+            print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
             #The default dynamic level is 1, we've made it higher to 
             dynamic_level = 5
             #run a ff optimize for each conformer to make sure the starting structure is sensible

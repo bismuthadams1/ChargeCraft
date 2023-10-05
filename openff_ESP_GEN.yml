@@ -1,0 +1,19 @@
+name: openff
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - psi4
+  - openff-recharge
+  - ca-certificates
+  - certifi
+  - openssl
+  - pint=0.19.2
+  - openeye-toolkits
+  - ipykernel
+  - py3dmol
+  - ase
+  - xtb-python
+  - geometric
+  - nglview
+prefix: /mnt/nfs/home/nca121/mambaforge/envs/openff
