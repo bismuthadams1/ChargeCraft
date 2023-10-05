@@ -37,11 +37,11 @@ class Conformers:
         """
         
         if generation_type == 'openeye':
-            return cls.rdkit_gen(molecule, max_conformers)
-        elif generation_type == 'rdkit':
             return cls.openeye_gen(molecule, max_conformers)
+        elif generation_type == 'rdkit':
+            return cls.rdkit_gen(molecule, max_conformers)
         else:
-            return 'invalid conformer generator option'
+            return print('invalid conformer generator option')
     
 
     @classmethod
@@ -67,6 +67,8 @@ class Conformers:
 
         rdmol = molecule.to_rdkit()
         AllChem.EmbedMultipleConfs(rdmol, numConfs=max_conformers, randomSeed=42)
+
+        print(f'rdkit has generated {rdmol.GetNumConformers()} conformers from a requested {max_conformers} conformers')
 
         conformers = []
 
@@ -105,6 +107,8 @@ class Conformers:
         conformers = ConformerGenerator.generate(
         molecule, ConformerSettings(max_conformers=max_conformers))
         
+        print(f'openeye has generated {len(conformers)} conformers from a requested {max_conformers} conformers')
+
         #Embed conformer in molecule object
         for conf in conformers:
             molecule.add_conformer(conf)
