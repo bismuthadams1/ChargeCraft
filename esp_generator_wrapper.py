@@ -1,10 +1,9 @@
-from openff_psi4_gen import Psi4ESPGenerator
+from openff_psi4_gen import CustomPsi4ESPGenerator
 from openff.toolkit import Molecule
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from tqdm import tqdm
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-import conversion_functions
 from rdkit.Chem import rdmolfiles
 import qcengine
 from openff.recharge.grids import GridSettingsType, GridGenerator
@@ -19,7 +18,7 @@ class generate_esps:
     def __init__(
               self, 
               molecule: "Molecule",
-              conformers: list[str],
+              conformers: list[unit.Quantity],
               esp_settings: "ESPSettings",
               grid_settings: "GridSettingsType"
               ) -> None:
@@ -33,7 +32,15 @@ class generate_esps:
 
     def run_esps(self) -> None:
         """
-        
+        Run psi4 to generate the ESPs, the function loops through the conformers and handles errors.
+        Appends the outputs to the sqlfile.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+            The contents of the input file.
         """
 
         for conf_no, conformer in enumerate(tqdm(self.conformers)):
@@ -43,7 +50,7 @@ class generate_esps:
             conformer = self._xtb_ff_opt(conf_no)
             grid = self._generate_grid(conformer)
             try:
-                conformer, grid, esp = self._esp_generator_wrapper(conformer, dynamic_level, grid)
+                conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level, grid)
             except Psi4Error:
                 #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer. 
                 continue
@@ -53,13 +60,30 @@ class generate_esps:
             self.records.append(record)
 
     def _esp_generator_wrapper(self, 
-                               conformer, 
-                               dynamic_level, 
-                               grid,
-                               error_level = 0):
+                               conformer: unit.Quantity, 
+                               dynamic_level: int, 
+                               grid: unit.Quantity,
+                               error_level: int = 0) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
+        """
+        Wrapper around the Psi4ESP generator which slowly increases the dynamic level if the calculation has problems
+
+        Parameters
+        ----------
+        conformer
+            The conformer of the molecule to generate the ESP for.
+        dynamic_level
+            This corresponds to the DYNAMIC_LEVEL keyword in the psi4 calculation. 
+        grid
+            ESP gridpoints.
+
+        Returns
+        -------
+            Conformer, grid, esp, and electric field OR a Psi4Error
+            
+        """
         # run through different error options, slowly escalate.
         try:
-            conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+            conformer, grid, esp, electric_field = CustomPsi4ESPGenerator.generate(
                             molecule = self.molecule,
                             conformer = conformer,
                             grid = grid,
@@ -83,13 +107,36 @@ class generate_esps:
             else:
                 raise Psi4Error 
 
-    def fetch_data(self):
+    def fetch_data(self) -> list[MoleculeESPRecord]:
+        """
+        Fetch the data from the qc_data_store. 
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+            The ESP contents 
+        """
         self.qc_data_store.store(*self.records)
 
             # Retrieve the stored properties.
         return self.qc_data_store.retrieve()
     
-    def _xtb_ff_opt(self, conformer_no: int):
+    def _xtb_ff_opt(self, 
+                    conformer_no: int) -> unit.Quantity:
+        """
+        Runs an xtb ff optimisation on the conformer using the qc_engine wrapper. 
+
+        Parameters
+        ----------
+        conformer_no
+            The conformer number in the molecule to run the optimisation on. 
+
+        Returns
+        -------
+            The ff optimised conformer. 
+        """
         qcel_mol = self.molecule.to_qcschema(conformer = conformer_no) 
         opt_input = {
                     "keywords": {
@@ -108,6 +155,19 @@ class generate_esps:
         ff_opt_conformer = Molecule.from_qcschema(ff_opt_geom).conformers[0]
         return ff_opt_conformer
           
-    def _generate_grid(self, conformer) -> unit.Quantity:
+    def _generate_grid(self, 
+                       conformer) -> unit.Quantity:
+        """
+        Generates the grid for the ESP. 
+
+        Parameters
+        ----------
+        conformer
+            The conformer which the grid needs to be generated on.
+
+        Returns
+        -------
+            The grid. 
+        """
         grid = GridGenerator.generate(self.molecule, conformer, self.grid_settings)
         return grid

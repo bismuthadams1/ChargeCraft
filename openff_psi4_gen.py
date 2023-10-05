@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 CWD = os.getcwd()
 
-class Psi4ESPGenerator:
+class CustomPsi4ESPGenerator:
     """An class which will compute the electrostatic potential of
     a molecule using Psi4.
     """
@@ -196,7 +196,7 @@ class Psi4ESPGenerator:
                 * unit.angstrom
             )
 
-        return final_coordinates, esp, electric_field
+        return final_coordinates, grid, esp, electric_field
   
 
        
