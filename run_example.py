@@ -23,7 +23,8 @@ def main():
     for mol in smiles:
         molecule = smiles_to_molecule(mol)
         #Generate the conformers
-        conformer_list = Conformers.generate(molecule, generation_type='rdkit')
+        conformer_list = Conformers.generate(molecule, generation_type='openeye')
+        print(len(conformer_list))
         ESP_gen = generate_esps(molecule = molecule, conformers = conformer_list, esp_settings = esp_settings, grid_settings = grid_settings)
         ESP_gen.run_esps()
         ESP_gen.fetch_data()

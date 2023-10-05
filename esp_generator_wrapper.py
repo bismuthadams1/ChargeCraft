@@ -44,6 +44,7 @@ class generate_esps:
         """
 
         for conf_no, conformer in enumerate(tqdm(self.conformers)):
+            print(f'conformer {conf_no} for {self.molecule.name}')
             #The default dynamic level is 1, we've made it higher to 
             dynamic_level = 5
             #run a ff optimize for each conformer to make sure the starting structure is sensible
@@ -120,7 +121,7 @@ class generate_esps:
         """
         self.qc_data_store.store(*self.records)
 
-            # Retrieve the stored properties.
+        # Retrieve the stored properties.
         return self.qc_data_store.retrieve()
     
     def _xtb_ff_opt(self, 
