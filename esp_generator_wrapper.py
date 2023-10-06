@@ -1,6 +1,7 @@
 from openff_psi4_gen import CustomPsi4ESPGenerator
 from openff.toolkit import Molecule
 from openff.recharge.esp import ESPSettings
+from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.exceptions import Psi4Error
 from tqdm import tqdm
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
@@ -8,9 +9,13 @@ from rdkit.Chem import rdmolfiles
 import qcengine
 from openff.recharge.grids import GridSettingsType, GridGenerator
 from openff.units import unit
+from qcelemental.models import Molecule as QCMolecule
+from qcelemental.models.common_models import Model
+from qcelemental.models.procedures import OptimizationInput, QCInputSpecification
+import copy
 
 
-class generate_esps:
+class ESPGenerator:
     """"
     Class for Generating ESPs which wraps around the Psi4ESPGenerator class and handles errors.   
     """
@@ -43,21 +48,32 @@ class generate_esps:
             The contents of the input file.
         """
 
-        for conf_no, conformer in enumerate(tqdm(self.conformers)):
+        for conf_no in range(self.molecule.n_conformers):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
-            #The default dynamic level is 1, we've made it higher to 
-            dynamic_level = 5
+            # #The default dynamic level is 1, we've made it higher to
+            # dynamic_level = 5
+            qc_mol = self.molecule.to_qcschema(conformer=conf_no)
+
             #run a ff optimize for each conformer to make sure the starting structure is sensible
-            conformer = self._xtb_ff_opt(conf_no)
-            grid = self._generate_grid(conformer)
-            try:
-                conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level, grid)
-            except Psi4Error:
-                #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer. 
-                continue
+            xtb_opt_mol = self._xtb_ff_opt(qc_mol)
+            # run the psi4 HF opt starting from the final conformer
+            hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+            opt_molecule = Molecule.from_qcschema(hf_opt_mol)
+
+            # generate the ESP grid at the optimised hf geometry
+            conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+                molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
+            )
+            # grid = self._generate_grid(conformer)
+            # try:
+            #     conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level, grid)
+            # except Psi4Error:
+            #     #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
+            #     continue
             record = MoleculeESPRecord.from_molecule(
                     self.molecule, conformer, grid, esp, electric_field, self.esp_settings
                 )
+            # push records to the db?
             self.records.append(record)
 
     def _esp_generator_wrapper(self, 
@@ -124,8 +140,7 @@ class generate_esps:
         # Retrieve the stored properties.
         return self.qc_data_store.retrieve()
     
-    def _xtb_ff_opt(self, 
-                    conformer_no: int) -> unit.Quantity:
+    def _xtb_ff_opt(self, qc_mol: QCMolecule) -> QCMolecule:
         """
         Runs an xtb ff optimisation on the conformer using the qc_engine wrapper. 
 
@@ -138,24 +153,46 @@ class generate_esps:
         -------
             The ff optimised conformer. 
         """
-        qcel_mol = self.molecule.to_qcschema(conformer = conformer_no) 
-        opt_input = {
-                    "keywords": {
-                        "program": "xtb",
-                        "verbosity" : "muted"
-                    },
-                    "input_specification": {
-                        "driver": "gradient",
-                        "model": {"method": "gfn2-xtb"},
-                        
-                    },
-                    "initial_molecule": qcel_mol
-                    }
-        opt = qcengine.compute_procedure(opt_input, "geometric")
-        ff_opt_geom = opt.final_molecule 
-        ff_opt_conformer = Molecule.from_qcschema(ff_opt_geom).conformers[0]
-        return ff_opt_conformer
-          
+        xtb_model = Model(method="gfn2-xtb", basis=None)
+        keywords = {"verbosity": "muted"}
+        return self._qcengine_opt(
+            qc_mol=qc_mol, model=xtb_model, program="xtb", spec_keywords=keywords
+        )
+
+    def _qcengine_opt(self, qc_mol: QCMolecule, model: Model, program: str, spec_keywords: dict[str, str]) -> QCMolecule:
+        """
+        A general function to run an optimisation via qcengine.
+        """
+        spec = QCInputSpecification(model=model, keywords=spec_keywords, driver="gradient")
+        opt_spec = OptimizationInput(
+            initial_molecule=qc_mol,
+            input_specification=spec,
+            keywords={"coordsys": "dlc", "program": program}
+        )
+        opt = qcengine.compute_procedure(opt_spec, "geometric")
+        return opt.final_molecule
+
+    def _psi4_opt(self, qc_mol: QCMolecule) -> QCMolecule:
+        """
+        Run an geometry optimisation using PSI4 and geometric.
+
+        Parameters
+        ----------
+        qc_mol:
+            The qcelemental version of the molecule to be optimised.
+
+        Returns
+        -------
+            The optimised qcelemental molecule
+        """
+        hf_model = Model(method="hf", basis="6-31G*")
+        # do want anything here like density fitting?
+        keywords = {}
+        return self._qcengine_opt(
+            qc_mol=qc_mol, model=hf_model, program="psi4", spec_keywords=keywords
+        )
+
+
     def _generate_grid(self, 
                        conformer) -> unit.Quantity:
         """
