@@ -25,20 +25,16 @@ class ESPGenerator:
               molecule: "Molecule",
               conformers: list[unit.Quantity],
               esp_settings: "ESPSettings",
-              grid_settings: "GridSettingsType",
-              memory : int = None,
-              ncores: int  = None
+              grid_settings: "GridSettingsType"
               ) -> None:
         self.conformers = conformers
         self.molecule = molecule
         #self.rd_molecule = self.molecule.to_rdkit()
         self.esp_settings = esp_settings
         self.grid_settings = grid_settings
-        self.memory = memory
-        self.ncores = ncores
         self.qc_data_store = MoleculeESPStore()
         self.records = []
-        
+
 
     @property
     def ncores(self):
@@ -62,6 +58,7 @@ class ESPGenerator:
         else:
             self._memory = value
 
+
     def run_esps(self) -> None:
         """
         Run psi4 to generate the ESPs, the function loops through the conformers and handles errors.
@@ -74,7 +71,6 @@ class ESPGenerator:
         -------
             The contents of the input file.
         """
-
 
         for conf_no in range(self.molecule.n_conformers):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
@@ -101,10 +97,8 @@ class ESPGenerator:
             record = MoleculeESPRecord.from_molecule(
                     self.molecule, conformer, grid, esp, electric_field, self.esp_settings
                 )
+            # push records to the db?
             self.records.append(record)
-        #push data to qc_data_store once loop has ended    
-        self.qc_data_store.store(*self.records)
-
 
     def _esp_generator_wrapper(self, 
                                conformer: unit.Quantity, 
@@ -165,6 +159,7 @@ class ESPGenerator:
         -------
             The ESP contents 
         """
+        self.qc_data_store.store(*self.records)
 
         # Retrieve the stored properties.
         return self.qc_data_store.retrieve()
@@ -188,7 +183,7 @@ class ESPGenerator:
             qc_mol=qc_mol, model=xtb_model, program="xtb", spec_keywords=keywords
         )
 
-    def _qcengine_opt(self, qc_mol: QCMolecule, model: Model, program: str, spec_keywords: dict[str, str], ) -> QCMolecule:
+    def _qcengine_opt(self, qc_mol: QCMolecule, model: Model, program: str, spec_keywords: dict[str, str]) -> QCMolecule:
         """
         A general function to run an optimisation via qcengine.
         """
@@ -198,7 +193,7 @@ class ESPGenerator:
             input_specification=spec,
             keywords={"coordsys": "dlc", "program": program}
         )
-        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options={"memory": self.memory,"ncores": self.ncores})
+        opt = qcengine.compute_procedure(opt_spec, "geometric")
         return opt.final_molecule
 
     def _psi4_opt(self, qc_mol: QCMolecule) -> QCMolecule:
