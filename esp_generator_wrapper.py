@@ -48,6 +48,8 @@ class ESPGenerator:
     def ncores(self, value):
         if value is None:
             self._ncores = qcengine.get_config().ncores
+        else:
+            self._ncores = value
     
     @property
     def memory(self):
@@ -57,7 +59,8 @@ class ESPGenerator:
     def memory(self, value):
         if value is None:
             self._memory =  qcengine.get_config().memory * 0.9
-
+        else:
+            self._memory = value
 
     def run_esps(self) -> None:
         """
