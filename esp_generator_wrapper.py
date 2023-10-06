@@ -35,6 +35,30 @@ class ESPGenerator:
         self.qc_data_store = MoleculeESPStore()
         self.records = []
 
+
+    @property
+    def ncores(self):
+        return self._ncores
+    
+    @ncores.setter
+    def ncores(self, value):
+        if value is None:
+            self._ncores = qcengine.get_config().ncores
+        else:
+            self._ncores = value
+    
+    @property
+    def memory(self):
+        return self._memory
+    
+    @memory.setter
+    def memory(self, value):
+        if value is None:
+            self._memory =  qcengine.get_config().memory * 0.9
+        else:
+            self._memory = value
+
+
     def run_esps(self) -> None:
         """
         Run psi4 to generate the ESPs, the function loops through the conformers and handles errors.
