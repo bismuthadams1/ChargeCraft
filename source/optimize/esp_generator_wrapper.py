@@ -1,4 +1,4 @@
-from openff_psi4_gen import CustomPsi4ESPGenerator
+from source.optimize.openff_psi4_gen import CustomPsi4ESPGenerator
 from openff.toolkit import Molecule
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
