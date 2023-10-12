@@ -25,7 +25,9 @@ class ESPGenerator:
               molecule: "Molecule",
               conformers: list[unit.Quantity],
               esp_settings: "ESPSettings",
-              grid_settings: "GridSettingsType"
+              grid_settings: "GridSettingsType",
+              ncores: int | None = None,
+              memory: int | None = None
               ) -> None:
         self.conformers = conformers
         self.molecule = molecule
@@ -34,7 +36,8 @@ class ESPGenerator:
         self.grid_settings = grid_settings
         self.qc_data_store = MoleculeESPStore()
         self.records = []
-
+        self.ncores = ncores
+        self.memory = memory
 
     @property
     def ncores(self):
@@ -54,7 +57,7 @@ class ESPGenerator:
     @memory.setter
     def memory(self, value):
         if value is None:
-            self._memory =  qcengine.get_config().memory * 0.9
+            self._memory =  qcengine.get_config().memory# * 0.9
         else:
             self._memory = value
 
@@ -99,6 +102,8 @@ class ESPGenerator:
                 )
             # push records to the db?
             self.records.append(record)
+        self.qc_data_store.store(*self.records)
+
 
     def _esp_generator_wrapper(self, 
                                conformer: unit.Quantity, 
@@ -191,7 +196,10 @@ class ESPGenerator:
         opt_spec = OptimizationInput(
             initial_molecule=qc_mol,
             input_specification=spec,
-            keywords={"coordsys": "dlc", "program": program}
+            keywords={"coordsys": "dlc", 
+                      "program": program,
+                      "memory": self.memory,
+                      "ncores": self.ncores}
         )
         opt = qcengine.compute_procedure(opt_spec, "geometric")
         return opt.final_molecule
