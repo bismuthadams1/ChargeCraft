@@ -202,6 +202,7 @@ class ESPGenerator:
                       "ncores": self.ncores}
         )
         opt = qcengine.compute_procedure(opt_spec, "geometric")
+        print(opt.result)
         return opt.final_molecule
 
     def _psi4_opt(self, qc_mol: QCMolecule) -> QCMolecule:
