@@ -25,6 +25,8 @@ def main():
         #Generate the conformers
         conformer_list = Conformers.generate(molecule, generation_type='rdkit')
         ESP_gen = ESPGenerator(molecule = molecule, conformers = conformer_list, esp_settings = esp_settings, grid_settings = grid_settings)
+        print(f'number of cores is {ESP_gen.ncores}')
+        print(f'memory is {ESP_gen.memory}')
         ESP_gen.run_esps()
         #ESP_gen.fetch_data()
         

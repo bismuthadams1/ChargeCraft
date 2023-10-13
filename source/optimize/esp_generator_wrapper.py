@@ -197,12 +197,11 @@ class ESPGenerator:
             initial_molecule=qc_mol,
             input_specification=spec,
             keywords={"coordsys": "dlc", 
-                      "program": program,
-                      "memory": self.memory,
-                      "ncores": self.ncores}
+                      "program": program} #"memory": self.memory,"ncores": self.ncores}
         )
         opt = qcengine.compute_procedure(opt_spec, "geometric")
-        print(opt.result)
+        print(opt)
+       # print(opt.result)
         return opt.final_molecule
 
     def _psi4_opt(self, qc_mol: QCMolecule) -> QCMolecule:
