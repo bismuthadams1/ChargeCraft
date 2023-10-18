@@ -9,6 +9,5 @@ __pycache__/RDKit_conformer_get.cpython-311.pyc
 *.xyz
 *.sqlite
 *.dat
-*.sh
 *.out
 openff_psi4_debug.py
