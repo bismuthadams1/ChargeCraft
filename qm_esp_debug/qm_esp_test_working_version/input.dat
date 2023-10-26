@@ -50,5 +50,5 @@ optimize('scf')
 
 
 
-E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)
+E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD',"MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE", "QUADRUPOLE", "MBIS_CHARGES"], return_wfn=True)
 wfn.to_file('wf')

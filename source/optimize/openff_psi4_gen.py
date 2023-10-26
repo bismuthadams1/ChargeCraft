@@ -8,12 +8,16 @@ import numpy
 from openff.units import unit
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
+from psi4.core import Wavefunction
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
+from source.utilities.conversion_functions import conf_to_xyz_string
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
+
+import psi4
 
 CWD = os.getcwd()
 
@@ -75,6 +79,9 @@ class CustomPsi4ESPGenerator:
             }
             for index, atom in enumerate(molecule.atoms)
         ]
+        
+
+        #
 
         # Format the jinja template
         template_path = get_data_file_path(
@@ -92,6 +99,8 @@ class CustomPsi4ESPGenerator:
             properties.append("GRID_ESP")
         if compute_field:
             properties.append("GRID_FIELD")
+        
+        properties.extend(["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE", "QUADRUPOLE", "MBIS_CHARGES"])
 
         template_inputs = {
             "charge": formal_charge,
@@ -103,7 +112,8 @@ class CustomPsi4ESPGenerator:
             "dft_settings": settings.psi4_dft_grid_settings.value,
             "minimize": minimize,
             "properties": str(properties),
-            "dynamic_level": dynamic_level
+            "dynamic_level": dynamic_level,
+            "return_wfn":"True"
         }
 
         if enable_pcm:
@@ -137,10 +147,6 @@ class CustomPsi4ESPGenerator:
         compute_field: bool = True,
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         # Perform the calculation in a temporary directory
-
-        input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize, compute_esp, compute_field, dynamic_level
-            )
 
 
         with temporary_cd(directory):
@@ -196,7 +202,32 @@ class CustomPsi4ESPGenerator:
                 * unit.angstrom
             )
 
+
         return final_coordinates, grid, esp, electric_field
   
 
-       
+class Psi4Generate:
+
+    @classmethod
+    def run_calc(cls,
+                molecule: "Molecule",
+                conformer: unit.Quantity,
+                settings: ESPSettings,
+                minimize: bool,
+                compute_esp: bool,
+                compute_field: bool,
+                dynamic_level: int = 1
+                ) -> dict:
+
+        formal_charge = sum(atom.formal_charge for atom in molecule.atoms).m
+
+        # Compute the spin multiplicity
+        total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
+        spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
+
+        # Store the atoms and coordinates in a jinja friendly dict.
+       # conformer = conformer.to(unit.angstrom).m
+
+        conformer_string = conf_to_xyz_string(conformer, molecule)
+
+        print(conformer_string)

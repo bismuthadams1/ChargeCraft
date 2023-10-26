@@ -78,7 +78,7 @@ class ESPGenerator:
         for conf_no in range(self.molecule.n_conformers):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
             # #The default dynamic level is 1, we've made it higher to
-            # dynamic_level = 5
+            dynamic_level = 5
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
 
             #run a ff optimize for each conformer to make sure the starting structure is sensible
@@ -88,15 +88,15 @@ class ESPGenerator:
             opt_molecule = Molecule.from_qcschema(hf_opt_mol)
 
             # generate the ESP grid at the optimised hf geometry
-            conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
-                molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
-            )
+            #conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+            #    molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
+            #)
             # grid = self._generate_grid(conformer)
-            # try:
-            #     conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level, grid)
-            # except Psi4Error:
+            try:
+                 conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer= opt_molecule.conformers[0], dynamic_level = dynamic_level, grid = opt_molecule)
+            except Psi4Error:
             #     #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
-            #     continue
+                 continue
             record = MoleculeESPRecord.from_molecule(
                     self.molecule, conformer, grid, esp, electric_field, self.esp_settings
                 )
@@ -135,7 +135,7 @@ class ESPGenerator:
                             grid = grid,
                             settings = self.esp_settings,
                             # Minimize the input conformer prior to evaluating the ESP / EF
-                            minimize=True,
+                            minimize=False,
                             dynamic_level = dynamic_level
                     )
             return conformer, grid, esp, electric_field
