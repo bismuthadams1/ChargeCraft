@@ -225,9 +225,25 @@ class Psi4Generate:
         total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
         spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
-        # Store the atoms and coordinates in a jinja friendly dict.
-       # conformer = conformer.to(unit.angstrom).m
-
         conformer_string = conf_to_xyz_string(conformer, molecule)
 
-        print(conformer_string)
+        molecule = psi4.geometry(conformer_string)
+
+        molecule.set_molecular_charge(formal_charge)
+        molecule.set_multiplicity(spin_multiplicity)
+
+        psi4.energy('hf/6-31g*', return_wfn=True, molecule = molecule)
+
+        psi4.prop('hf/6-31G*', properties=["GRID_ESP", "GRID_FIELD","MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE", "QUADRUPOLE", "MBIS_CHARGES"])
+
+
+        if compute_esp:
+            esp = (
+                numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+            )
+        if compute_field:
+            electric_field = (
+                numpy.loadtxt("grid_field.dat")
+                * unit.hartree
+                / (unit.e * unit.bohr)
+            )
