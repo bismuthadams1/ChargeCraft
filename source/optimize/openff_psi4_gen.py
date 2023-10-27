@@ -218,6 +218,10 @@ class Psi4Generate:
                 compute_field: bool,
                 dynamic_level: int = 1
                 ) -> dict:
+        
+        grid = grid.to(unit.angstrom).m
+        numpy.savetxt("grid.dat", grid, delimiter=" ", fmt="%16.10f")
+
 
         formal_charge = sum(atom.formal_charge for atom in molecule.atoms).m
 
