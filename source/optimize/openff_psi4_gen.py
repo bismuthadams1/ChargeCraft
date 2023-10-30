@@ -17,6 +17,9 @@ from source.utilities.conversion_functions import conf_to_xyz_string
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
 
+from qcelemental.models import Molecule as QCMolecule
+
+
 import psi4
 
 CWD = os.getcwd()
@@ -207,47 +210,68 @@ class CustomPsi4ESPGenerator:
   
 
 class Psi4Generate:
+    """
+    A class that will compute the one electron properties of the wavefunction including ESPs, dipoles, quadroples, grids, milliken, lowdin, and mbis charges.
+    """
+
 
     @classmethod
-    def run_calc(cls,
+    def get_properties(cls,
                 molecule: "Molecule",
                 conformer: unit.Quantity,
                 settings: ESPSettings,
-                minimize: bool,
                 compute_esp: bool,
                 compute_field: bool,
-                dynamic_level: int = 1
+                dynamic_level: int = 1,
+                directory: str = CWD,
                 ) -> dict:
         
-        grid = grid.to(unit.angstrom).m
-        numpy.savetxt("grid.dat", grid, delimiter=" ", fmt="%16.10f")
+        with temporary_cd(directory):
+            grid = grid.to(unit.angstrom).m
+            numpy.savetxt("grid.dat", grid, delimiter=" ", fmt="%16.10f")
+
+            formal_charge = sum(atom.formal_charge for atom in molecule.atoms).m
+
+            # Compute the spin multiplicity
+            total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
+            spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
+
+            molecule = psi4.geometry(conformer.to_string("psi4"))
+
+            #Ultrafine grid
+            psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
+                              "DFT_RADIAL_POINTS":"99"})
+
+            #Load in geometry from string, nocom and noreorient to stop automatic reoerientation
+            molecule = psi4.geometry(f"""
+                                    nocom
+                                    noreorient
+                                    {molecule}""")
+            
+            molecule.set_molecular_charge(formal_charge)
+            molecule.set_multiplicity(spin_multiplicity)
+
+            E, wfn =  psi4.prop('hf/6-31G*', properties=["GRID_ESP",
+                                                         "GRID_FIELD",
+                                                         "MULLIKEN_CHARGES", 
+                                                         "LOWDIN_CHARGES", 
+                                                         "DIPOLE", 
+                                                         "QUADRUPOLE", 
+                                                         "MBIS_CHARGES"], molecule = molecule)
 
 
-        formal_charge = sum(atom.formal_charge for atom in molecule.atoms).m
+            if compute_esp:
+                esp = (
+                    numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+                )
+            if compute_field:
+                electric_field = (
+                    numpy.loadtxt("grid_field.dat")
+                    * unit.hartree
+                    / (unit.e * unit.bohr)
+                )
 
-        # Compute the spin multiplicity
-        total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
-        spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
+            variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
+            variables_dictionary = {name: wfn.variable(name) for name in variable_names}
 
-        conformer_string = conf_to_xyz_string(conformer, molecule)
-
-        molecule = psi4.geometry(conformer_string)
-
-        molecule.set_molecular_charge(formal_charge)
-        molecule.set_multiplicity(spin_multiplicity)
-
-        psi4.energy('hf/6-31g*', return_wfn=True, molecule = molecule)
-
-        psi4.prop('hf/6-31G*', properties=["GRID_ESP", "GRID_FIELD","MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE", "QUADRUPOLE", "MBIS_CHARGES"])
-
-
-        if compute_esp:
-            esp = (
-                numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
-            )
-        if compute_field:
-            electric_field = (
-                numpy.loadtxt("grid_field.dat")
-                * unit.hartree
-                / (unit.e * unit.bohr)
-            )
+            return grid, esp, electric_field, variables_dictionary
