@@ -221,8 +221,8 @@ class Psi4Generate:
                 conformer: unit.Quantity,
                 grid: unit.Quantity,
                 settings: ESPSettings,
-                compute_esp: bool,
-                compute_field: bool,
+                #compute_esp: bool,
+                #compute_field: bool,
                 dynamic_level: int = 1,
                 directory: str = CWD,
                 ) -> dict:
@@ -261,16 +261,16 @@ class Psi4Generate:
                                                          "MBIS_CHARGES"], molecule = molecule)
 
 
-            if compute_esp:
-                esp = (
-                    numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
-                )
-            if compute_field:
-                electric_field = (
-                    numpy.loadtxt("grid_field.dat")
-                    * unit.hartree
-                    / (unit.e * unit.bohr)
-                )
+            
+            esp = (
+                numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+            )
+        
+            electric_field = (
+                numpy.loadtxt("grid_field.dat")
+                * unit.hartree
+                / (unit.e * unit.bohr)
+            )
 
             variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
             variables_dictionary = {name: wfn.variable(name) for name in variable_names}

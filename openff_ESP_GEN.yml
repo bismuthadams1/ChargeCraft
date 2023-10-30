@@ -1,9 +1,12 @@
 name: openff
 channels:
   - conda-forge
+  - conda-forge/label/libint_dev
   - defaults
+  - openeye
 dependencies:
   - psi4
+  - libint
   - openff-recharge
   - ca-certificates
   - certifi

@@ -140,9 +140,11 @@ class ESPGenerator:
             initial_molecule=qc_mol,
             input_specification=spec,
             keywords={"coordsys": "dlc", 
-                      "program": program} #"memory": self.memory,"ncores": self.ncores}
+                      "program": program
+                      }
+                    
         )
-        opt = qcengine.compute_procedure(opt_spec, "geometric")
+        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory, "ncores": self.ncores})
         print(opt)
        # print(opt.result)
         return opt.final_molecule
