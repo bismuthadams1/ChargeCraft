@@ -243,7 +243,7 @@ class Psi4Generate:
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
 
-            #Load in geometry from string, nocom and noreorient to stop automatic reoerientation
+            #Load in geometry from string, nocom and noreorient to stop automatic  reoerientation
             molecule = psi4.geometry(f"""
                                     nocom
                                     noreorient
