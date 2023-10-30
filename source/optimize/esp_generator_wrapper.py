@@ -255,7 +255,7 @@ class PropGenerator(ESPGenerator):
         """
         # run through different error options, slowly escalate.
         try:
-            grid, esp, electric_field, variables_dictionary = Psi4Generate.run_calc(
+            grid, esp, electric_field, variables_dictionary = Psi4Generate.get_properties(
                             molecule = self.molecule,
                             conformer = conformer,
                             grid = grid,
