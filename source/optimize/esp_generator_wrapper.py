@@ -1,4 +1,4 @@
-from source.optimize.openff_psi4_gen import CustomPsi4ESPGenerator
+from source.optimize.openff_psi4_gen import Psi4Generate
 from openff.toolkit import Molecule
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
@@ -13,6 +13,7 @@ from qcelemental.models import Molecule as QCMolecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationInput, QCInputSpecification
 import copy
+import numpy as np
 
 
 class ESPGenerator:
@@ -77,81 +78,23 @@ class ESPGenerator:
 
         for conf_no in range(self.molecule.n_conformers):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
-            # #The default dynamic level is 1, we've made it higher to
-            dynamic_level = 5
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
-
             #run a ff optimize for each conformer to make sure the starting structure is sensible
             xtb_opt_mol = self._xtb_ff_opt(qc_mol)
             # run the psi4 HF opt starting from the final conformer
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
             opt_molecule = Molecule.from_qcschema(hf_opt_mol)
-
-            # generate the ESP grid at the optimised hf geometry
-            #conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
-            #    molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
-            #)
-            # grid = self._generate_grid(conformer)
-            try:
-                 conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer= opt_molecule.conformers[0], dynamic_level = dynamic_level, grid = opt_molecule)
-            except Psi4Error:
-            #     #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
-                 continue
+        
+            conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+               molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
+            )
+           
             record = MoleculeESPRecord.from_molecule(
                     self.molecule, conformer, grid, esp, electric_field, self.esp_settings
                 )
-            # push records to the db?
+            # push records to the db
             self.records.append(record)
         self.qc_data_store.store(*self.records)
-
-
-    def _esp_generator_wrapper(self, 
-                               conformer: unit.Quantity, 
-                               dynamic_level: int, 
-                               grid: unit.Quantity,
-                               error_level: int = 0) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
-        """
-        Wrapper around the Psi4ESP generator which slowly increases the dynamic level if the calculation has problems
-
-        Parameters
-        ----------
-        conformer
-            The conformer of the molecule to generate the ESP for.
-        dynamic_level
-            This corresponds to the DYNAMIC_LEVEL keyword in the psi4 calculation. 
-        grid
-            ESP gridpoints.
-
-        Returns
-        -------
-            Conformer, grid, esp, and electric field OR a Psi4Error
-            
-        """
-        # run through different error options, slowly escalate.
-        try:
-            conformer, grid, esp, electric_field = CustomPsi4ESPGenerator.generate(
-                            molecule = self.molecule,
-                            conformer = conformer,
-                            grid = grid,
-                            settings = self.esp_settings,
-                            # Minimize the input conformer prior to evaluating the ESP / EF
-                            minimize=False,
-                            dynamic_level = dynamic_level
-                    )
-            return conformer, grid, esp, electric_field
-        except Psi4Error:
-            if error_level == 0:
-                error_level += 1
-                dynamic_level += 1
-                conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level, error_level)
-                return conformer, grid, esp, electric_field
-            elif error_level == 1:
-                error_level += 1
-                dynamic_level += 1
-                conformer, grid, esp, electric_field = self._esp_generator_wrapper(conformer, dynamic_level, error_level)
-                return conformer, grid, esp, electric_field
-            else:
-                raise Psi4Error 
 
     def fetch_data(self) -> list[MoleculeESPRecord]:
         """
@@ -226,7 +169,7 @@ class ESPGenerator:
 
 
     def _generate_grid(self, 
-                       conformer) -> unit.Quantity:
+                       conformer: np.array) -> unit.Quantity:
         """
         Generates the grid for the ESP. 
 
@@ -241,3 +184,96 @@ class ESPGenerator:
         """
         grid = GridGenerator.generate(self.molecule, conformer, self.grid_settings)
         return grid
+
+
+class PropGenerator(ESPGenerator):
+
+    def __init__(self,
+                 molecule: "Molecule",
+                 conformers: list[unit.Quantity],
+                 esp_settings: "ESPSettings",
+                 grid_settings: "GridSettingsType",
+                 ncores: int | None = None,
+                 memory: int | None = None
+                 ) -> None:
+        super().__init__(
+                   molecule,
+                   conformers,
+                   esp_settings,
+                   grid_settings,
+                   ncores,
+                   memory)
+        
+    
+    def run_props(self) -> None:
+        
+        for conf_no in range(self.molecule.n_conformers):
+            print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
+            # #The default dynamic level is 1, we've made it higher to
+            dynamic_level = 5
+            
+            qc_mol = self.molecule.to_qcschema(conformer=conf_no)
+
+            #run a ff optimize for each conformer to make sure the starting structure is sensible
+            xtb_opt_mol = self._xtb_ff_opt(qc_mol)
+            
+            hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+
+            qc_mol = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
+
+            grid = self._generate_grid(qc_mol.geometry)
+
+            try:
+                 grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol.geometry * unit.angstrom, dynamic_level = dynamic_level, grid = grid)
+            except Psi4Error:
+                 #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
+                 continue
+            
+            print(variables_dictionary)
+
+    def _prop_generator_wrapper(self, 
+                                conformer: unit.Quantity, 
+                                dynamic_level: int, 
+                                grid: unit.Quantity,
+                                error_level: int = 0) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
+        """
+        Wrapper around the Psi4ESP generator which slowly increases the dynamic level if the calculation has problems
+
+        Parameters
+        ----------
+        conformer
+            The conformer of the molecule to generate the ESP for.
+        dynamic_level
+            This corresponds to the DYNAMIC_LEVEL keyword in the psi4 calculation. 
+        grid
+            ESP gridpoints.
+
+        Returns
+        -------
+            Conformer, grid, esp, and electric field OR a Psi4Error
+            
+        """
+        # run through different error options, slowly escalate.
+        try:
+            grid, esp, electric_field, variables_dictionary = Psi4Generate.get_properties(
+                            molecule = self.molecule,
+                            conformer = conformer,
+                            grid = grid,
+                            settings = self.esp_settings,
+                            dynamic_level = dynamic_level
+                    )
+            return grid, esp, electric_field, variables_dictionary
+        #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
+        except Psi4Error:
+            if error_level == 0:
+                error_level += 1
+                dynamic_level += 1
+                grid, esp, electric_field, variables_dictionary = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                return grid, esp, electric_field, variables_dictionary
+            elif error_level == 1:
+                error_level += 1
+                dynamic_level += 1
+                grid, esp, electric_field, variables_dictionary = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                return grid, esp, electric_field, variables_dictionary
+            else:
+                raise Psi4Error 
