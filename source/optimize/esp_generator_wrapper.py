@@ -221,7 +221,7 @@ class PropGenerator(ESPGenerator):
 
             qc_mol = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
 
-            grid = self._generate_grid(qc_mol.geometry)
+            grid = self._generate_grid(qc_mol.geometry * unit.angstrom)
 
             try:
                  grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol.geometry * unit.angstrom, dynamic_level = dynamic_level, grid = grid)
@@ -255,7 +255,7 @@ class PropGenerator(ESPGenerator):
         """
         # run through different error options, slowly escalate.
         try:
-            grid, esp, electric_field, variables_dictionary = Psi4Generate.get_properties(
+            grid, esp, electric_field, variables_dictionary = Psi4Generate.run_calc(
                             molecule = self.molecule,
                             conformer = conformer,
                             grid = grid,

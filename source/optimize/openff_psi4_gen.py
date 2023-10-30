@@ -212,6 +212,7 @@ class Psi4Generate:
     def run_calc(cls,
                 molecule: "Molecule",
                 conformer: unit.Quantity,
+                grid: unit.Quantity,
                 settings: ESPSettings,
                 minimize: bool,
                 compute_esp: bool,
