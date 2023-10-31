@@ -188,7 +188,9 @@ class ESPGenerator:
 
 
 class PropGenerator(ESPGenerator):
-
+    """"
+    Class for Generating ESPs and properties which wraps around the Psi4Generate class and handles errors.   
+    """
     def __init__(self,
                  molecule: "Molecule",
                  conformers: list[unit.Quantity],
@@ -207,7 +209,17 @@ class PropGenerator(ESPGenerator):
         
     
     def run_props(self) -> None:
-        
+        """
+        Run psi4 to generate the ESPs and the properties, the function loops through the conformers and handles errors.
+        Appends the outputs to the sqlfile.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+            The contents of the input file.
+        """
         for conf_no in range(self.molecule.n_conformers):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
             # #The default dynamic level is 1, we've made it higher to
