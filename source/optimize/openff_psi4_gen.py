@@ -261,7 +261,7 @@ class Psi4Generate:
                 * unit.hartree
                 / (unit.e * unit.bohr)
             )
-
+            #all variables stored in a.u.
             variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
             variables_dictionary = {name: wfn.variable(name) for name in variable_names}
 
