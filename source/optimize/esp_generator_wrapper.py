@@ -146,7 +146,6 @@ class ESPGenerator:
         )
         opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory, "ncores": self.ncores})
         print(opt)
-       # print(opt.result)
         return opt.final_molecule
 
     def _psi4_opt(self, qc_mol: QCMolecule) -> QCMolecule:
@@ -213,28 +212,24 @@ class PropGenerator(ESPGenerator):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
             # #The default dynamic level is 1, we've made it higher to
             dynamic_level = 5
-            
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
-
             #run a ff optimize for each conformer to make sure the starting structure is sensible
-            xtb_opt_mol = self._xtb_ff_opt(qc_mol)
-            
+            xtb_opt_mol = self._xtb_ff_opt(qc_mol)           
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
-
-            qc_mol = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
-
-            grid = self._generate_grid(qc_mol.geometry * unit.angstrom)
-
+            qc_mol_opt = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
+            #geometries coming out as bohr, need to ensure keep bohr/angstrom throughout
+            grid = self._generate_grid(hf_opt_mol.geometry * unit.angstrom)
             try:
-                 grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol.geometry * unit.angstrom, dynamic_level = dynamic_level, grid = grid)
+                 xyz, grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
             except Psi4Error:
                  #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                  continue
             
             print(variables_dictionary)
+            print(xyz)
 
     def _prop_generator_wrapper(self, 
-                                conformer: unit.Quantity, 
+                                conformer: "QCMolecule", 
                                 dynamic_level: int, 
                                 grid: unit.Quantity,
                                 error_level: int = 0) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
@@ -257,25 +252,25 @@ class PropGenerator(ESPGenerator):
         """
         # run through different error options, slowly escalate.
         try:
-            grid, esp, electric_field, variables_dictionary = Psi4Generate.get_properties(
+            xyz, grid, esp, electric_field, variables_dictionary = Psi4Generate.get_properties(
                             molecule = self.molecule,
                             conformer = conformer,
                             grid = grid,
                             settings = self.esp_settings,
                             dynamic_level = dynamic_level
                     )
-            return grid, esp, electric_field, variables_dictionary
+            return xyz, grid, esp, electric_field, variables_dictionary
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
         except Psi4Error:
             if error_level == 0:
                 error_level += 1
                 dynamic_level += 1
                 grid, esp, electric_field, variables_dictionary = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-                return grid, esp, electric_field, variables_dictionary
+                return xyz, grid, esp, electric_field, variables_dictionary
             elif error_level == 1:
                 error_level += 1
                 dynamic_level += 1
                 grid, esp, electric_field, variables_dictionary = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-                return grid, esp, electric_field, variables_dictionary
+                return xyz, grid, esp, electric_field, variables_dictionary
             else:
                 raise Psi4Error 

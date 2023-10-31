@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from openff.toolkit import Molecule
 
 from qcelemental.models import Molecule as QCMolecule
-
+from psi4.core import Molecule as Psi4Molecule
 
 import psi4
 
@@ -218,7 +218,7 @@ class Psi4Generate:
     @classmethod
     def get_properties(cls,
                 molecule: "Molecule",
-                conformer: unit.Quantity,
+                conformer: "QCMolecule",
                 grid: unit.Quantity,
                 settings: ESPSettings,
                 #compute_esp: bool,
@@ -237,20 +237,21 @@ class Psi4Generate:
             total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
             spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
-            molecule = psi4.geometry(conformer.to_string("psi4"))
+            #molecule_from_string = conformer.to_string("psi4")
+
+            molecule_psi4 = psi4.geometry(conformer.to_string("psi4"))
 
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
 
             #Load in geometry from string, nocom and noreorient to stop automatic  reoerientation
-            molecule = psi4.geometry(f"""
-                                    nocom
-                                    noreorient
-                                    {molecule}""")
+            #molecule_psi4 = psi4.geometry(f"""
+            #                        noreorient
+            #                       {molecule_from_string}""")
             
-            molecule.set_molecular_charge(formal_charge)
-            molecule.set_multiplicity(spin_multiplicity)
+            molecule_psi4.set_molecular_charge(formal_charge)
+            molecule_psi4.set_multiplicity(spin_multiplicity)
 
             E, wfn =  psi4.prop('hf/6-31G*', properties=["GRID_ESP",
                                                          "GRID_FIELD",
@@ -258,7 +259,9 @@ class Psi4Generate:
                                                          "LOWDIN_CHARGES", 
                                                          "DIPOLE", 
                                                          "QUADRUPOLE", 
-                                                         "MBIS_CHARGES"], molecule = molecule)
+                                                         "MBIS_CHARGES"], 
+                                                         molecule = molecule_psi4,
+                                                         return_wfn = True)
 
 
             
@@ -275,4 +278,8 @@ class Psi4Generate:
             variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
             variables_dictionary = {name: wfn.variable(name) for name in variable_names}
 
-            return grid, esp, electric_field, variables_dictionary
+            #xyz_coords = Psi4Molecule.xyz(molecule_psi4)
+            xyz_coords = molecule_psi4.print_out_in_angstrom()
+            #print(molecule_psi4.print_out_in_angstrom())
+
+            return xyz_coords, grid, esp, electric_field, variables_dictionary
