@@ -1,4 +1,5 @@
 from source.optimize.openff_psi4_gen import Psi4Generate
+from source.storage.storage import MoleculePropRecord
 from openff.toolkit import Molecule
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
@@ -234,13 +235,17 @@ class PropGenerator(ESPGenerator):
             #geometries a given as bohr in the qcelement .geometry attribute, convert to angstrom
             grid = self._generate_grid((hf_opt_mol.geometry * unit.bohr).to(unit.angstrom))
             try:
-                 xyz, grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
+                 conformer, grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
             except Psi4Error:
                  #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                  continue
             
+            record = MoleculePropRecord.from_molecule(
+                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings, variables_dictionary
+            )
+            print(*record)
+
             print(variables_dictionary)
-            print(xyz)
 
     def _prop_generator_wrapper(self, 
                                 conformer: "QCMolecule", 
