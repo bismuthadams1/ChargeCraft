@@ -34,4 +34,3 @@ for mol in smiles:
     print(f'number of cores is {ESP_gen.ncores}')
     print(f'memory is {ESP_gen.memory}')
     ESP_gen.run_props()
-    #ESP_gen.fetch_data()

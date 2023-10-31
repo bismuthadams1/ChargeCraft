@@ -214,11 +214,13 @@ class PropGenerator(ESPGenerator):
             dynamic_level = 5
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
             #run a ff optimize for each conformer to make sure the starting structure is sensible
-            xtb_opt_mol = self._xtb_ff_opt(qc_mol)           
+            xtb_opt_mol = self._xtb_ff_opt(qc_mol)
+            #hf QM optimisation           
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+            #ensure molecule is not orientated
             qc_mol_opt = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
-            #geometries coming out as bohr, need to ensure keep bohr/angstrom throughout
-            grid = self._generate_grid(hf_opt_mol.geometry * unit.angstrom)
+            #geometries a given as bohr in the qcelement .geometry attribute, convert to angstrom
+            grid = self._generate_grid((hf_opt_mol.geometry * unit.bohr).to(unit.angstrom))
             try:
                  xyz, grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
             except Psi4Error:

@@ -8,7 +8,6 @@ import numpy
 from openff.units import unit
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
-from psi4.core import Wavefunction
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
@@ -18,7 +17,6 @@ if TYPE_CHECKING:
     from openff.toolkit import Molecule
 
 from qcelemental.models import Molecule as QCMolecule
-from psi4.core import Molecule as Psi4Molecule
 
 import psi4
 
@@ -214,15 +212,13 @@ class Psi4Generate:
     A class that will compute the one electron properties of the wavefunction including ESPs, dipoles, quadroples, grids, milliken, lowdin, and mbis charges.
     """
 
-
+   
     @classmethod
     def get_properties(cls,
                 molecule: "Molecule",
                 conformer: "QCMolecule",
                 grid: unit.Quantity,
                 settings: ESPSettings,
-                #compute_esp: bool,
-                #compute_field: bool,
                 dynamic_level: int = 1,
                 directory: str = CWD,
                 ) -> dict:
@@ -237,22 +233,15 @@ class Psi4Generate:
             total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
             spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
-            #molecule_from_string = conformer.to_string("psi4")
-
             molecule_psi4 = psi4.geometry(conformer.to_string("psi4"))
 
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
-
-            #Load in geometry from string, nocom and noreorient to stop automatic  reoerientation
-            #molecule_psi4 = psi4.geometry(f"""
-            #                        noreorient
-            #                       {molecule_from_string}""")
             
             molecule_psi4.set_molecular_charge(formal_charge)
             molecule_psi4.set_multiplicity(spin_multiplicity)
-
+            #Currently QM settings hard coded in, can get from ESPSettings object.
             E, wfn =  psi4.prop('hf/6-31G*', properties=["GRID_ESP",
                                                          "GRID_FIELD",
                                                          "MULLIKEN_CHARGES", 
@@ -263,8 +252,6 @@ class Psi4Generate:
                                                          molecule = molecule_psi4,
                                                          return_wfn = True)
 
-
-            
             esp = (
                 numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
             )
@@ -278,8 +265,7 @@ class Psi4Generate:
             variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
             variables_dictionary = {name: wfn.variable(name) for name in variable_names}
 
-            #xyz_coords = Psi4Molecule.xyz(molecule_psi4)
-            xyz_coords = molecule_psi4.print_out_in_angstrom()
-            #print(molecule_psi4.print_out_in_angstrom())
+            #qcelemental.geometry is outputted in bohr, conver to  angstrom
+            final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
 
-            return xyz_coords, grid, esp, electric_field, variables_dictionary
+            return final_coordinates, grid, esp, electric_field, variables_dictionary
