@@ -221,7 +221,7 @@ class Psi4Generate:
                 settings: ESPSettings,
                 dynamic_level: int = 1,
                 directory: str = CWD,
-                ) -> dict:
+                ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict()]:
         
         with temporary_cd(directory):
             grid = grid.to(unit.angstrom).m
