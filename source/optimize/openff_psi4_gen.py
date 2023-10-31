@@ -261,9 +261,18 @@ class Psi4Generate:
                 * unit.hartree
                 / (unit.e * unit.bohr)
             )
-            #all variables stored in a.u.
-            variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
-            variables_dictionary = {name: wfn.variable(name) for name in variable_names}
+
+            #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
+            #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
+            
+            variables_dictionary = dict()
+            #psi4 computes charges in a.u., elementary charge
+            variables_dictionary["MULLIKEN_CHARGES"] = (wfn.variable("MULLIKEN_CHARGES"), unit.e)
+            variables_dictionary["LOWDIN_CHARGES"] = (wfn.variable("LOWDIN_CHARGES"), unit.e)
+            variables_dictionary["MBIS CHARGES"] = (wfn.variable("MBIS CHARGES"), unit.e)
+            #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
+            variables_dictionary["HF DIPOLE"] = (wfn.variable("HF DIPOLE"), unit.e * unit.bohr_radius)
+            variables_dictionary["HF QUADRUPOLE"] = (wfn.variable("HF DIPOLE"), unit.e * unit.bohr_radius**2)
 
             #qcelemental.geometry is outputted in bohr, conver to  angstrom
             final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
