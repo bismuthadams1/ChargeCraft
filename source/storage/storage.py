@@ -19,6 +19,8 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
+from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp
+from collections import defaultdict
 
 
 if TYPE_CHECKING:
@@ -84,7 +86,7 @@ class MoleculePropRecord(MoleculeESPRecord):
             electric_field: Optional[unit.Quantity],
             esp_settings: ESPSettings,
             variables_dictionary: dict
-        ) -> "MoleculeESPRecord":
+        ) -> "MoleculePropRecord":
 
             """Creates a new ``MoleculeESPRecord`` from an existing molecule
             object, taking care of creating the InChI and SMARTS representations.
@@ -148,8 +150,143 @@ class MoleculePropRecord(MoleculeESPRecord):
 
 
         
-class MoleculePropertiesStore(MoleculeESPStore):
+class MoleculePropStore(MoleculeESPStore):
     
+    def __init__(self, database_path: str = "prop-store.sqlite"):
+        return super().__init__(database_path)
+
+
     @classmethod
-    def _db_records_to_model(cls, db_records: List[DBMoleculeRecord]) -> List[MoleculeESPRecord]:
-         return super()._db_records_to_model(db_records)
+    def _db_records_to_model(cls, db_records: List[DBMoleculeRecordProp]) -> List[MoleculeESPRecord]:
+        """Maps a set of database records into their corresponding
+        data models.
+
+        Parameters
+        ----------
+        db_records
+            The records to map.
+
+        Returns
+        -------
+            The mapped data models.
+        """
+        #molecule_esp_db_records = super()._db_records_to_model(db_records: List[DBMoleculeRecord])
+
+        # noinspection PyTypeChecker
+        return [
+            MoleculePropRecord(
+                tagged_smiles=db_conformer.tagged_smiles,
+                conformer=db_conformer.coordinates,
+                grid_coordinates=db_conformer.grid,
+                esp=db_conformer.esp,
+                electric_field=db_conformer.field,
+                esp_settings=ESPSettings(
+                    basis=db_conformer.esp_settings.basis,
+                    method=db_conformer.esp_settings.method,
+                    grid_settings=DBGridSettings.db_to_instance(
+                        db_conformer.grid_settings
+                    ),
+                    pcm_settings=None
+                    if not db_conformer.pcm_settings
+                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
+                mulliken_charges = db_conformer.muliken_charges,
+                lowdin_charges = db_conformer.lowdin_charges,
+                mbis_charges = db_conformer.mbis_charges,
+                dipole = db_conformer.dipole,
+                quadropole = db_conformer.quadropole
+                ),
+            )
+            for db_record in db_records
+            for db_conformer in db_record.conformers
+        ]
+
+    def store(self, *records: MoleculePropRecord):
+        """Store the properties  calculated for
+        a given molecule in the data store.
+
+        Parameters
+        ----------
+        records
+            The records to store.
+
+        Returns
+        -------
+            The records as they appear in the store.
+        """
+
+        # Validate an re-partition the records by their smiles patterns.
+        records_by_smiles: Dict[str, List[MoleculePropRecord]] = defaultdict(list)
+
+        for record in records:
+            record = MoleculePropRecord(**record.dict())
+            smiles = self._tagged_to_canonical_smiles(record.tagged_smiles)
+
+            records_by_smiles[smiles].append(record)
+
+        # Store the records.
+        with self._get_session() as db:
+            for smiles in records_by_smiles:
+                self._store_smiles_records(db, smiles, records_by_smiles[smiles])            
+
+
+    def retrieve(
+            self,
+            smiles: Optional[str] = None,
+            basis: Optional[str] = None,
+            method: Optional[str] = None,
+            implicit_solvent: Optional[bool] = None,
+        ) -> List[MoleculePropRecord]:
+            """Retrieve records stored in this data store, optionally
+            according to a set of filters."""
+
+            with self._get_session() as db:
+                db_records = db.query(DBMoleculeRecordProp)
+
+                if smiles is not None:
+                    smiles = self._tagged_to_canonical_smiles(smiles)
+                    db_records = db_records.filter(DBMoleculeRecordProp.smiles == smiles)
+
+                if basis is not None or method is not None or implicit_solvent is not None:
+                    db_records = db_records.join(DBConformerRecordProp)
+
+                    if basis is not None or method is not None:
+                        db_records = db_records.join(
+                            DBESPSettings, DBConformerRecordProp.esp_settings
+                        )
+
+                        if basis is not None:
+                            db_records = db_records.filter(DBESPSettings.basis == basis)
+                        if method is not None:
+                            db_records = db_records.filter(DBESPSettings.method == method)
+
+                    if implicit_solvent is not None:
+                        if implicit_solvent:
+                            db_records = db_records.filter(
+                                DBConformerRecordProp.pcm_settings_id.isnot(None)
+                            )
+                        else:
+                            db_records = db_records.filter(
+                                DBConformerRecordProp.pcm_settings_id.is_(None)
+                            )
+
+                db_records = db_records.all()
+
+                records = self._db_records_to_model(db_records)
+
+                if basis:
+                    records = [
+                        record for record in records if record.esp_settings.basis == basis
+                    ]
+                if method:
+                    records = [
+                        record for record in records if record.esp_settings.method == method
+                    ]
+
+                return records                  
+
+    def list(self) -> List[str]:
+            """Lists the molecules which exist in and may be retrieved from the
+            store."""
+
+            with self._get_session() as db:
+                return [smiles for (smiles,) in db.query(DBMoleculeRecordProp.smiles).all()]

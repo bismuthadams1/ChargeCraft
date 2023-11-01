@@ -1,5 +1,5 @@
 from source.optimize.openff_psi4_gen import Psi4Generate
-from source.storage.storage import MoleculePropRecord
+from source.storage.storage import MoleculePropRecord, MoleculePropStore
 from openff.toolkit import Molecule
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
@@ -207,6 +207,8 @@ class PropGenerator(ESPGenerator):
                    grid_settings,
                    ncores,
                    memory)
+        self.prop_data_store = MoleculePropStore()
+
         
     
     def run_props(self) -> None:
@@ -244,8 +246,9 @@ class PropGenerator(ESPGenerator):
                     self.molecule, conformer, grid, esp, electric_field, self.esp_settings, variables_dictionary
             )
             print(*record)
-
+            self.records.append(record)
             print(variables_dictionary)
+        self.prop_data_store(*self.records)
 
     def _prop_generator_wrapper(self, 
                                 conformer: "QCMolecule", 
