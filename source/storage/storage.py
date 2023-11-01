@@ -21,6 +21,7 @@ from openff.recharge.esp.storage.db import (
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp
 from collections import defaultdict
+from sqlalchemy.orm import Session, sessionmaker
 
 
 if TYPE_CHECKING:
@@ -57,23 +58,23 @@ class MoleculePropRecord(MoleculeESPRecord):
         )
 
         @property
-        def mulliken_charges(self) -> unit.Quantity:
+        def mulliken_charges_quantity(self) -> unit.Quantity:
             return self.mulliken_charges * unit.e
 
         @property
-        def lowdin_charges(self) -> unit.Quantity:
+        def lowdin_charges_quantity(self) -> unit.Quantity:
             return self.lowdin_charges * unit.e
 
         @property
-        def mbis_charges(self) -> unit.Quantity:
+        def mbis_charges_quantity(self) -> unit.Quantity:
             return self.mbis_charges * unit.e
         
         @property
-        def dipole(self) -> unit.Quantity:
+        def dipole_quantity(self) -> unit.Quantity:
             return self.dipole * unit.e * unit.bohr_radius
         
         @property
-        def quadropole(self) -> unit.Quantity:
+        def quadropole_quantity(self) -> unit.Quantity:
             return self.quadropole * unit.e * unit.bohr_radius**2
         
         @classmethod
@@ -128,7 +129,7 @@ class MoleculePropRecord(MoleculeESPRecord):
             quadropole = variables_dictionary["HF QUADRUPOLE"]
 
             # Create the MoleculePropRecord with the additional properties
-            molecule_prop_record = cls(
+            molecule_prop_record = MoleculePropRecord(
                 tagged_smiles=molecule_esp_record.tagged_smiles,
                 conformer=molecule_esp_record.conformer,
                 grid_coordinates=molecule_esp_record.grid_coordinates,
@@ -143,11 +144,6 @@ class MoleculePropRecord(MoleculeESPRecord):
             )
 
             return molecule_prop_record
-
-
-
-
-
 
         
 class MoleculePropStore(MoleculeESPStore):
@@ -189,7 +185,7 @@ class MoleculePropStore(MoleculeESPStore):
                     pcm_settings=None
                     if not db_conformer.pcm_settings
                     else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
-                mulliken_charges = db_conformer.muliken_charges,
+                mulliken_charges = db_conformer.mulliken_charges,
                 lowdin_charges = db_conformer.lowdin_charges,
                 mbis_charges = db_conformer.mbis_charges,
                 dipole = db_conformer.dipole,
@@ -199,6 +195,64 @@ class MoleculePropStore(MoleculeESPStore):
             for db_record in db_records
             for db_conformer in db_record.conformers
         ]
+
+
+    @classmethod
+    def _store_smiles_records(
+        cls, db: Session, smiles: str, records: List[MoleculePropRecord]
+    ) -> DBMoleculeRecordProp:
+        """Stores a set of records which all store information for the same
+        molecule.
+
+        Parameters
+        ----------
+        db
+            The current database session.
+        smiles
+            The smiles representation of the molecule.
+        records
+            The records to store.
+        """
+
+        existing_db_molecule = (
+            db.query(DBMoleculeRecordProp).filter(DBMoleculeRecordProp.smiles == smiles).first()
+        )
+
+        if existing_db_molecule is not None:
+            db_record = existing_db_molecule
+        else:
+            db_record = DBMoleculeRecordProp(smiles=smiles)
+
+        # noinspection PyTypeChecker
+        # noinspection PyUnresolvedReferences
+        db_record.conformers.extend(
+            DBConformerRecordProp(
+                tagged_smiles=record.tagged_smiles,
+                coordinates=record.conformer,
+                grid=record.grid_coordinates,
+                esp=record.esp,
+                field=record.electric_field,
+                grid_settings=DBGridSettings.unique(
+                    db, record.esp_settings.grid_settings
+                ),
+                pcm_settings=None
+                if not record.esp_settings.pcm_settings
+                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
+                esp_settings=DBESPSettings.unique(db, record.esp_settings),
+                mulliken_charges = record.mulliken_charges,
+                lowdin_charges = record.lowdin_charges,
+                mbis_charges = record.mbis_charges,
+                dipole = record.dipole,
+                quadropole = record.quadropole
+            )
+            for record in records
+        )
+
+        if existing_db_molecule is None:
+            db.add(db_record)
+
+        return db_record
+
 
     def store(self, *records: MoleculePropRecord):
         """Store the properties  calculated for

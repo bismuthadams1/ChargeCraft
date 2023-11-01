@@ -248,7 +248,7 @@ class PropGenerator(ESPGenerator):
             print(*record)
             self.records.append(record)
             print(variables_dictionary)
-        self.prop_data_store(*self.records)
+        self.prop_data_store.store(*self.records)
 
     def _prop_generator_wrapper(self, 
                                 conformer: "QCMolecule", 
