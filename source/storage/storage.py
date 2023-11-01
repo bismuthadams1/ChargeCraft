@@ -1,6 +1,7 @@
 
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 from pydantic import BaseModel, Field
+from contextlib import contextmanager
 
 import numpy as np
 from openff.units import unit
@@ -149,11 +150,11 @@ class MoleculePropRecord(MoleculeESPRecord):
 class MoleculePropStore(MoleculeESPStore):
     
     def __init__(self, database_path: str = "prop-store.sqlite"):
-        return super().__init__(database_path)
+        return super().__init__(database_path = database_path)
 
 
     @classmethod
-    def _db_records_to_model(cls, db_records: List[DBMoleculeRecordProp]) -> List[MoleculeESPRecord]:
+    def _db_records_to_model(cls, db_records: List[DBMoleculeRecordProp]) -> List[MoleculePropRecord]:
         """Maps a set of database records into their corresponding
         data models.
 
@@ -184,13 +185,13 @@ class MoleculePropStore(MoleculeESPStore):
                     ),
                     pcm_settings=None
                     if not db_conformer.pcm_settings
-                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
+                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings)),
                 mulliken_charges = db_conformer.mulliken_charges,
                 lowdin_charges = db_conformer.lowdin_charges,
                 mbis_charges = db_conformer.mbis_charges,
                 dipole = db_conformer.dipole,
                 quadropole = db_conformer.quadropole
-                ),
+                ,
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
@@ -337,6 +338,20 @@ class MoleculePropStore(MoleculeESPStore):
                     ]
 
                 return records                  
+
+    @contextmanager
+    def _get_session(self) -> ContextManager[Session]:
+        session = self._session_maker()
+
+        try:
+            yield session
+            session.commit()
+        except BaseException as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
 
     def list(self) -> List[str]:
             """Lists the molecules which exist in and may be retrieved from the
