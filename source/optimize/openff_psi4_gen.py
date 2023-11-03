@@ -11,9 +11,14 @@ from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
+from source.utilities.conversion_functions import conf_to_xyz_string
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
+
+from qcelemental.models import Molecule as QCMolecule
+
+import psi4
 
 CWD = os.getcwd()
 
@@ -75,6 +80,9 @@ class CustomPsi4ESPGenerator:
             }
             for index, atom in enumerate(molecule.atoms)
         ]
+        
+
+        #
 
         # Format the jinja template
         template_path = get_data_file_path(
@@ -92,6 +100,8 @@ class CustomPsi4ESPGenerator:
             properties.append("GRID_ESP")
         if compute_field:
             properties.append("GRID_FIELD")
+        
+        properties.extend(["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE", "QUADRUPOLE", "MBIS_CHARGES"])
 
         template_inputs = {
             "charge": formal_charge,
@@ -103,7 +113,8 @@ class CustomPsi4ESPGenerator:
             "dft_settings": settings.psi4_dft_grid_settings.value,
             "minimize": minimize,
             "properties": str(properties),
-            "dynamic_level": dynamic_level
+            "dynamic_level": dynamic_level,
+            "return_wfn":"True"
         }
 
         if enable_pcm:
@@ -137,10 +148,6 @@ class CustomPsi4ESPGenerator:
         compute_field: bool = True,
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         # Perform the calculation in a temporary directory
-
-        input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize, compute_esp, compute_field, dynamic_level
-            )
 
 
         with temporary_cd(directory):
@@ -196,7 +203,78 @@ class CustomPsi4ESPGenerator:
                 * unit.angstrom
             )
 
+
         return final_coordinates, grid, esp, electric_field
   
 
-       
+class Psi4Generate:
+    """
+    A class that will compute the one electron properties of the wavefunction including ESPs, dipoles, quadroples, grids, milliken, lowdin, and mbis charges.
+    """
+
+   
+    @classmethod
+    def get_properties(cls,
+                molecule: "Molecule",
+                conformer: "QCMolecule",
+                grid: unit.Quantity,
+                settings: ESPSettings,
+                dynamic_level: int = 1,
+                directory: str = CWD,
+                ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict()]:
+        
+        with temporary_cd(directory):
+            grid = grid.to(unit.angstrom).m
+            numpy.savetxt("grid.dat", grid, delimiter=" ", fmt="%16.10f")
+
+            formal_charge = sum(atom.formal_charge for atom in molecule.atoms).m
+
+            # Compute the spin multiplicity
+            total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
+            spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
+
+            molecule_psi4 = psi4.geometry(conformer.to_string("psi4"))
+
+            #Ultrafine grid
+            psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
+                              "DFT_RADIAL_POINTS":"99"})
+            
+            molecule_psi4.set_molecular_charge(formal_charge)
+            molecule_psi4.set_multiplicity(spin_multiplicity)
+            #Currently QM settings hard coded in, can get from ESPSettings object.
+            E, wfn =  psi4.prop('hf/6-31G*', properties=["GRID_ESP",
+                                                         "GRID_FIELD",
+                                                         "MULLIKEN_CHARGES", 
+                                                         "LOWDIN_CHARGES", 
+                                                         "DIPOLE", 
+                                                         "QUADRUPOLE", 
+                                                         "MBIS_CHARGES"], 
+                                                         molecule = molecule_psi4,
+                                                         return_wfn = True)
+
+            esp = (
+                numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+            )
+        
+            electric_field = (
+                numpy.loadtxt("grid_field.dat")
+                * unit.hartree
+                / (unit.e * unit.bohr)
+            )
+
+            #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
+            #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
+            
+            variables_dictionary = dict()
+            #psi4 computes charges in a.u., elementary charge
+            variables_dictionary["MULLIKEN_CHARGES"] = (wfn.variable("MULLIKEN_CHARGES") * unit.e)
+            variables_dictionary["LOWDIN_CHARGES"] = (wfn.variable("LOWDIN_CHARGES") * unit.e)
+            variables_dictionary["MBIS CHARGES"] = (wfn.variable("MBIS CHARGES")* unit.e)
+            #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
+            variables_dictionary["HF DIPOLE"] = (wfn.variable("HF DIPOLE") * unit.e * unit.bohr_radius)
+            variables_dictionary["HF QUADRUPOLE"] = (wfn.variable("HF QUADRUPOLE") * unit.e * unit.bohr_radius**2)
+
+            #qcelemental.geometry is outputted in bohr, conver to  angstrom
+            final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
+
+            return final_coordinates, grid, esp, electric_field, variables_dictionary
