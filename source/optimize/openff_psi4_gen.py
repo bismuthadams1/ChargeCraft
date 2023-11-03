@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 from qcelemental.models import Molecule as QCMolecule
 
 import psi4
+from psi4.core import GeometryUnits
 
 CWD = os.getcwd()
 
@@ -233,7 +234,12 @@ class Psi4Generate:
             total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
             spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
+            #conf_to_str = conformer.to_string("psi4")
             molecule_psi4 = psi4.geometry(conformer.to_string("psi4"))
+            #ensure units of geometry are in Angstrom (same as grid)
+            #print( f'the units before set units are {molecule_psi4.units()}')
+            molecule_psi4.set_units(GeometryUnits.Angstrom)
+            #print( f'the units before after units are {molecule_psi4.units()}')
 
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
