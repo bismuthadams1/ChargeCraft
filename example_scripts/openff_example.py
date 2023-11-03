@@ -11,8 +11,7 @@ from RDKit_conformer_get import generate
 from rdkit.Chem import AllChem
 
 def main():
-    # Load in the molecule that we would like to generate the electrostatic properties
-    # for.
+    # Load in the molecule that we would like to generate the electrostatic properties for
     molecule = smiles_to_molecule("OCC(O)CO")
 
     # Define the grid that the electrostatic properties will be trained on and the
