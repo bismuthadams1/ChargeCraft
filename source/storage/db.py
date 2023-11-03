@@ -18,6 +18,9 @@ class DBConformerRecordProp(DBConformerRecord):
     mbis_charges  = Column(PickleType, nullable=False)
     dipole = Column(PickleType, nullable=False)
     quadropole =  Column(PickleType, nullable=False)
+    mbis_dipole = Column(PickleType, nullable=False)
+    mbis_quadropole = Column(PickleType, nullable=False)
+    mbis_octopole = Column(PickleType, nullable=False)
 
 
 class DBMoleculeRecordProp(DBMoleculeRecord):

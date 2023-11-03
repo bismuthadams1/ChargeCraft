@@ -58,6 +58,20 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "molecular quadropole",
         )
 
+        mbis_dipole: Array[float] = Field(...,
+        description= "mbis dipole",
+        )
+
+        mbis_quadropole: Array[float] = Field(...,
+        description= "mbis quadropole",
+        )
+
+        mbis_octopole: Array[float] = Field(...,
+        description= "mbis octopole",
+        )
+
+
+
         @property
         def mulliken_charges_quantity(self) -> unit.Quantity:
             return self.mulliken_charges * unit.e
@@ -77,6 +91,18 @@ class MoleculePropRecord(MoleculeESPRecord):
         @property
         def quadropole_quantity(self) -> unit.Quantity:
             return self.quadropole * unit.e * unit.bohr_radius**2
+        
+        @property
+        def mbis_dipole_quantity(self) -> unit.Quantity:
+            return self.mbis_dipole * unit.e * unit.bohr_radius
+        
+        @property
+        def mbis_quadropole_quantity(self) -> unit.Quantity:
+            return self.mbis_quadropole * unit.e * unit.bohr_radius ** 2 
+
+        @property
+        def mbis_octopole_quantity(self) -> unit.Quantity:
+            return self.mbis_quadropole * unit.e * unit.bohr_radius ** 3       
         
         @classmethod
         def from_molecule(
@@ -128,6 +154,9 @@ class MoleculePropRecord(MoleculeESPRecord):
             mbis_charges = variables_dictionary["MBIS CHARGES"]
             dipole = variables_dictionary["HF DIPOLE"]
             quadropole = variables_dictionary["HF QUADRUPOLE"]
+            mbis_dipole = variables_dictionary["MBIS DIPOLE"]
+            mbis_quadropole = variables_dictionary["MBIS QUADRUPOLE"]
+            mbis_octopole= variables_dictionary["MBIS OCTOPOLE"]
 
             # Create the MoleculePropRecord with the additional properties
             molecule_prop_record = MoleculePropRecord(
@@ -142,6 +171,9 @@ class MoleculePropRecord(MoleculeESPRecord):
                 mbis_charges=mbis_charges,
                 dipole=dipole,
                 quadropole=quadropole,
+                mbis_dipole= mbis_dipole,
+                mbis_quadropole= mbis_quadropole,
+                mbis_octopole= mbis_octopole
             )
 
             return molecule_prop_record
@@ -190,8 +222,10 @@ class MoleculePropStore(MoleculeESPStore):
                 lowdin_charges = db_conformer.lowdin_charges,
                 mbis_charges = db_conformer.mbis_charges,
                 dipole = db_conformer.dipole,
-                quadropole = db_conformer.quadropole
-                ,
+                quadropole = db_conformer.quadropole,
+                mbis_dipole= db_conformer.mbis_dipole,
+                mbis_quadropole= db_conformer.mbis_quadropole,
+                mbis_octopole= db_conformer.mbis_octopole
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
@@ -244,7 +278,10 @@ class MoleculePropStore(MoleculeESPStore):
                 lowdin_charges = record.lowdin_charges,
                 mbis_charges = record.mbis_charges,
                 dipole = record.dipole,
-                quadropole = record.quadropole
+                quadropole = record.quadropole,
+                mbis_dipole= record.mbis_dipole,
+                mbis_quadropole= record.mbis_quadropole,
+                mbis_octopole= record.mbis_octopole
             )
             for record in records
         )
