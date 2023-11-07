@@ -70,8 +70,6 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "mbis octopole",
         )
 
-
-
         @property
         def mulliken_charges_quantity(self) -> unit.Quantity:
             return self.mulliken_charges * unit.e

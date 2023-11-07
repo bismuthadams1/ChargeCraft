@@ -171,7 +171,7 @@ class ESPGenerator:
 
 
     def _generate_grid(self, 
-                       conformer: np.array) -> unit.Quantity:
+                       conformer: unit.Quantity) -> unit.Quantity:
         """
         Generates the grid for the ESP. 
 
@@ -185,6 +185,7 @@ class ESPGenerator:
             The grid. 
         """
         grid = GridGenerator.generate(self.molecule, conformer, self.grid_settings)
+        #returns grid in Angstrom
         return grid
 
 
@@ -234,8 +235,8 @@ class PropGenerator(ESPGenerator):
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
             #ensure molecule is not orientated
             qc_mol_opt = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
-            #geometries a given as bohr in the qcelement .geometry attribute, convert to angstrom
-            grid = self._generate_grid((hf_opt_mol.geometry * unit.bohr).to(unit.angstrom))
+            #QC geometries a given as bohr in the qcelement .geometry attribute, conversion to angstrom is handled in the GridGenerator.generate() method. 
+            grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))
             try:
                  conformer, grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
             except Psi4Error:
