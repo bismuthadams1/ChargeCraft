@@ -13,8 +13,7 @@ from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from source.utilities.conversion_functions import conf_to_xyz_string
 
-if TYPE_CHECKING:
-    from openff.toolkit import Molecule
+from openff.toolkit import Molecule
 
 from qcelemental.models import Molecule as QCMolecule
 
@@ -234,12 +233,18 @@ class Psi4Generate:
             total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
             spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
-            #conf_to_str = conformer.to_string("psi4")
-            molecule_psi4 = psi4.geometry(conformer.to_string("psi4"))
-            #ensure units of geometry are in Angstrom (same as grid)
-            #print( f'the units before set units are {molecule_psi4.units()}')
+            conformer_Ang = Molecule.from_qcschema(conformer)
+
+            conformer_Ang = conformer_Ang.conformers[0].to(unit.angstrom).m
+
+    
+            conformer_Ang_string = ""
+            for index, atom in enumerate(molecule.atoms):
+                  conformer_Ang_string += f"{SYMBOLS[atom.atomic_number]}\t{conformer_Ang[index, 0]}\t{conformer_Ang[index, 1]}\t{conformer_Ang[index, 2]}\n"
+       
+            molecule_psi4 = psi4.geometry(conformer_Ang_string.strip())
+            
             molecule_psi4.set_units(GeometryUnits.Angstrom)
-            #print( f'the units before after units are {molecule_psi4.units()}')
 
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
@@ -284,7 +289,7 @@ class Psi4Generate:
             variables_dictionary["HF DIPOLE"] = wfn.variable("HF DIPOLE") * unit.e * unit.bohr_radius
             variables_dictionary["HF QUADRUPOLE"] = wfn.variable("HF QUADRUPOLE") * unit.e * unit.bohr_radius**2
 
-            #qcelemental.geometry is outputted in bohr, conver to  angstrom
+            #qcelemental.geometry is outputted in bohr, convert to  angstrom
             final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
 
             return final_coordinates, grid, esp, electric_field, variables_dictionary
