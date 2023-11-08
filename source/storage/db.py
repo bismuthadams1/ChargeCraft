@@ -1,4 +1,5 @@
-from openff.recharge.esp.storage.db import DBMoleculeRecord, DBGridSettings, DBPCMSettings, DBESPSettings, DBConformerRecord
+from openff.recharge.esp.storage.db import DBMoleculeRecord, DBGridSettings, DBPCMSettings, DBESPSettings, DBConformerRecord, DBBase
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -7,8 +8,14 @@ from sqlalchemy import (
     PickleType,
     String,
     UniqueConstraint,
+    JSON
 )
 from sqlalchemy.orm import Query, Session, relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.declarative import declarative_base
+
+
 
 
 
@@ -21,7 +28,12 @@ class DBConformerRecordProp(DBConformerRecord):
     mbis_dipole = Column(PickleType, nullable=False)
     mbis_quadropole = Column(PickleType, nullable=False)
     mbis_octopole = Column(PickleType, nullable=False)
+#    charge_model_charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
 
+class DBChargeModel(DBBase):
+    id = Column(Integer, primary_key=True)
+    conformer_id = Column(Integer, ForeignKey("conformers.id"))
+    charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
 
 class DBMoleculeRecordProp(DBMoleculeRecord):
 

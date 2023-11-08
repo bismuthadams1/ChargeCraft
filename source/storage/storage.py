@@ -70,6 +70,11 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "mbis octopole",
         )
 
+        charge_model_charges: Dict[str, List[float]] = Field(...,
+        description= "partial charges in JSON"
+        )
+
+
         @property
         def mulliken_charges_quantity(self) -> unit.Quantity:
             return self.mulliken_charges * unit.e
@@ -102,6 +107,7 @@ class MoleculePropRecord(MoleculeESPRecord):
         def mbis_octopole_quantity(self) -> unit.Quantity:
             return self.mbis_quadropole * unit.e * unit.bohr_radius ** 3       
         
+
         @classmethod
         def from_molecule(
             cls,
@@ -111,7 +117,7 @@ class MoleculePropRecord(MoleculeESPRecord):
             esp: unit.Quantity,
             electric_field: Optional[unit.Quantity],
             esp_settings: ESPSettings,
-            variables_dictionary: dict
+            variables_dictionary: dict,
         ) -> "MoleculePropRecord":
 
             """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -224,6 +230,7 @@ class MoleculePropStore(MoleculeESPStore):
                 mbis_dipole= db_conformer.mbis_dipole,
                 mbis_quadropole= db_conformer.mbis_quadropole,
                 mbis_octopole= db_conformer.mbis_octopole
+                charge_model_charges = db_conformer.charge_model_charges
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
@@ -317,6 +324,9 @@ class MoleculePropStore(MoleculeESPStore):
         with self._get_session() as db:
             for smiles in records_by_smiles:
                 self._store_smiles_records(db, smiles, records_by_smiles[smiles])            
+
+    def store_partial(self, molecule: str, conformer: int, charge_model: str, charges: Array):
+        ...
 
 
     def retrieve(
