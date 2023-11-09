@@ -7,8 +7,7 @@ from sqlalchemy import (
     Integer,
     PickleType,
     String,
-    UniqueConstraint,
-    JSON
+    UniqueConstraint
 )
 from sqlalchemy.orm import Query, Session, relationship
 from sqlalchemy.dialects.postgresql import JSONB
@@ -28,12 +27,14 @@ class DBConformerRecordProp(DBConformerRecord):
     mbis_dipole = Column(PickleType, nullable=False)
     mbis_quadropole = Column(PickleType, nullable=False)
     mbis_octopole = Column(PickleType, nullable=False)
-#    charge_model_charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
+    energy = Column(PickleType, nullable=False)
+    #willl need to set up a postgresql db for json
+    #charge_model_charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
 
-class DBChargeModel(DBBase):
-    id = Column(Integer, primary_key=True)
-    conformer_id = Column(Integer, ForeignKey("conformers.id"))
-    charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
+#class DBChargeModel(DBBase):
+#    id = Column(Integer, primary_key=True)
+#    conformer_id = Column(Integer, ForeignKey("conformers.id"))
+#    charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
 
 class DBMoleculeRecordProp(DBMoleculeRecord):
 

@@ -86,12 +86,12 @@ class ESPGenerator:
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
             opt_molecule = Molecule.from_qcschema(hf_opt_mol)
         
-            conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+            conformer, grid, esp, electric_field, E = Psi4ESPGenerator.generate(
                molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
             )
            
             record = MoleculeESPRecord.from_molecule(
-                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings
+                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings, E
                 )
             # push records to the db
             self.records.append(record)
@@ -199,7 +199,8 @@ class PropGenerator(ESPGenerator):
                  esp_settings: "ESPSettings",
                  grid_settings: "GridSettingsType",
                  ncores: int | None = None,
-                 memory: int | None = None
+                 memory: int | None = None,
+                 prop_data_store = MoleculePropStore()
                  ) -> None:
         super().__init__(
                    molecule,
@@ -208,7 +209,7 @@ class PropGenerator(ESPGenerator):
                    grid_settings,
                    ncores,
                    memory)
-        self.prop_data_store = MoleculePropStore()
+        self.prop_data_store = prop_data_store
 
         
     
@@ -238,13 +239,13 @@ class PropGenerator(ESPGenerator):
             #QC geometries a given as bohr in the qcelement .geometry attribute, conversion to angstrom is handled in the GridGenerator.generate() method. 
             grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))
             try:
-                 conformer, grid, esp, electric_field, variables_dictionary  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
+                 conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
             except Psi4Error:
                  #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                  continue
             
             record = MoleculePropRecord.from_molecule(
-                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings, variables_dictionary
+                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings, variables_dictionary, E
             )
             print(*record)
             self.records.append(record)
@@ -275,25 +276,25 @@ class PropGenerator(ESPGenerator):
         """
         # run through different error options, slowly escalate.
         try:
-            xyz, grid, esp, electric_field, variables_dictionary = Psi4Generate.get_properties(
+            xyz, grid, esp, electric_field, variables_dictionary, E = Psi4Generate.get_properties(
                             molecule = self.molecule,
                             conformer = conformer,
                             grid = grid,
                             settings = self.esp_settings,
                             dynamic_level = dynamic_level
                     )
-            return xyz, grid, esp, electric_field, variables_dictionary
+            return xyz, grid, esp, electric_field, variables_dictionary, E
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
         except Psi4Error:
             if error_level == 0:
                 error_level += 1
                 dynamic_level += 1
-                grid, esp, electric_field, variables_dictionary = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-                return xyz, grid, esp, electric_field, variables_dictionary
+                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                return xyz, grid, esp, electric_field, variables_dictionary, E
             elif error_level == 1:
                 error_level += 1
                 dynamic_level += 1
-                grid, esp, electric_field, variables_dictionary = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-                return xyz, grid, esp, electric_field, variables_dictionary
+                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                return xyz, grid, esp, electric_field, variables_dictionary, E
             else:
                 raise Psi4Error 

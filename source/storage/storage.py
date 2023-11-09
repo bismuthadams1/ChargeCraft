@@ -70,9 +70,14 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "mbis octopole",
         )
 
-        charge_model_charges: Dict[str, List[float]] = Field(...,
-        description= "partial charges in JSON"
+        energy: Array[float] = Field(...,
+        description= "energy associated with the calculation"                             
         )
+
+        #charge_model_charges: Dict[str, List[float]] = Field(...,
+        #description= "partial charges in JSON"
+        #)
+
 
 
         @property
@@ -107,6 +112,10 @@ class MoleculePropRecord(MoleculeESPRecord):
         def mbis_octopole_quantity(self) -> unit.Quantity:
             return self.mbis_quadropole * unit.e * unit.bohr_radius ** 3       
         
+        @property
+        def energy_quantity(self) -> unit.Quantity:
+            return self.energy * unit.hartree 
+        
 
         @classmethod
         def from_molecule(
@@ -118,6 +127,7 @@ class MoleculePropRecord(MoleculeESPRecord):
             electric_field: Optional[unit.Quantity],
             esp_settings: ESPSettings,
             variables_dictionary: dict,
+            energy: int
         ) -> "MoleculePropRecord":
 
             """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -177,7 +187,8 @@ class MoleculePropRecord(MoleculeESPRecord):
                 quadropole=quadropole,
                 mbis_dipole= mbis_dipole,
                 mbis_quadropole= mbis_quadropole,
-                mbis_octopole= mbis_octopole
+                mbis_octopole= mbis_octopole,
+                energy = energy
             )
 
             return molecule_prop_record
@@ -229,8 +240,8 @@ class MoleculePropStore(MoleculeESPStore):
                 quadropole = db_conformer.quadropole,
                 mbis_dipole= db_conformer.mbis_dipole,
                 mbis_quadropole= db_conformer.mbis_quadropole,
-                mbis_octopole= db_conformer.mbis_octopole
-                charge_model_charges = db_conformer.charge_model_charges
+                mbis_octopole= db_conformer.mbis_octopole,
+                energy = db_conformer.energy
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
@@ -286,7 +297,8 @@ class MoleculePropStore(MoleculeESPStore):
                 quadropole = record.quadropole,
                 mbis_dipole= record.mbis_dipole,
                 mbis_quadropole= record.mbis_quadropole,
-                mbis_octopole= record.mbis_octopole
+                mbis_octopole= record.mbis_octopole,
+                energy = record.energy
             )
             for record in records
         )
@@ -325,9 +337,11 @@ class MoleculePropStore(MoleculeESPStore):
             for smiles in records_by_smiles:
                 self._store_smiles_records(db, smiles, records_by_smiles[smiles])            
 
-    def store_partial(self, molecule: str, conformer: int, charge_model: str, charges: Array):
+    def store_partial(self, tagged_smiles: str, conformer:Array, charge_model: str, charges: Array) -> None:
         ...
 
+    def retrieve_partial(self, tagged_smiles: str, conformer:Array ) -> None:
+        ...
 
     def retrieve(
             self,

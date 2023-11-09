@@ -292,4 +292,4 @@ class Psi4Generate:
             #qcelemental.geometry is outputted in bohr, convert to  angstrom
             final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
 
-            return final_coordinates, grid, esp, electric_field, variables_dictionary
+            return final_coordinates, grid, esp, electric_field, variables_dictionary, E
