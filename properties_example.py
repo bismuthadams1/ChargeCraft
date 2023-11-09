@@ -30,8 +30,8 @@ esp_settings = ESPSettings(basis="6-31G*", method="hf", grid_settings=grid_setti
 for mol in smiles:
     molecule = smiles_to_molecule(mol)
     #Generate the conformers
-    conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=10)
-    ESP_gen = PropGenerator(molecule = molecule, conformers = conformer_list, esp_settings = esp_settings, grid_settings = grid_settings, prop_data_store = MoleculePropStore(database_path='prop_test.db'))
+    conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=1)
+    ESP_gen = PropGenerator(molecule = molecule, conformers = conformer_list, esp_settings = esp_settings, grid_settings = grid_settings, prop_data_store = MoleculePropStore(database_path='prop_test_2.db'))
     ESP_gen.memory = 2e+9 #2gb
     print(f'number of cores is {ESP_gen.ncores}')
     print(f'memory is {ESP_gen.memory}')

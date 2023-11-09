@@ -24,6 +24,7 @@ from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
 
+import json
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -74,9 +75,9 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "energy associated with the calculation"                             
         )
 
-        #charge_model_charges: Dict[str, List[float]] = Field(...,
-        #description= "partial charges in JSON"
-        #)
+        charge_model_charges: Optional[str] = Field(...,
+        description= "partial charges in JSON"
+        )
 
 
 
@@ -116,6 +117,9 @@ class MoleculePropRecord(MoleculeESPRecord):
         def energy_quantity(self) -> unit.Quantity:
             return self.energy * unit.hartree 
         
+        @property
+        def charge_model_json(self) -> Dict[str, Array]:
+            return json.load(self.charge_model_charges)
 
         @classmethod
         def from_molecule(
@@ -128,7 +132,7 @@ class MoleculePropRecord(MoleculeESPRecord):
             esp_settings: ESPSettings,
             variables_dictionary: dict,
             energy: int
-        ) -> "MoleculePropRecord":
+            ) -> "MoleculePropRecord":
 
             """Creates a new ``MoleculeESPRecord`` from an existing molecule
             object, taking care of creating the InChI and SMARTS representations.
@@ -188,10 +192,12 @@ class MoleculePropRecord(MoleculeESPRecord):
                 mbis_dipole= mbis_dipole,
                 mbis_quadropole= mbis_quadropole,
                 mbis_octopole= mbis_octopole,
-                energy = energy
+                energy = energy,
+                charge_model_charges = None
             )
 
             return molecule_prop_record
+
 
         
 class MoleculePropStore(MoleculeESPStore):
@@ -241,7 +247,8 @@ class MoleculePropStore(MoleculeESPStore):
                 mbis_dipole= db_conformer.mbis_dipole,
                 mbis_quadropole= db_conformer.mbis_quadropole,
                 mbis_octopole= db_conformer.mbis_octopole,
-                energy = db_conformer.energy
+                energy = db_conformer.energy,
+                charge_model_charges = None
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
@@ -298,7 +305,8 @@ class MoleculePropStore(MoleculeESPStore):
                 mbis_dipole= record.mbis_dipole,
                 mbis_quadropole= record.mbis_quadropole,
                 mbis_octopole= record.mbis_octopole,
-                energy = record.energy
+                energy = record.energy,
+                charge_model_charges = None
             )
             for record in records
         )
@@ -337,11 +345,86 @@ class MoleculePropStore(MoleculeESPStore):
             for smiles in records_by_smiles:
                 self._store_smiles_records(db, smiles, records_by_smiles[smiles])            
 
-    def store_partial(self, tagged_smiles: str, conformer:Array, charge_model: str, charges: Array) -> None:
-        ...
+    def store_partial(self, 
+                      smiles: str, 
+                      conformer: Array, 
+                      charge_model: str, 
+                      charges: Array,
+                      basis: Optional[str] = None,
+                      method: Optional[str] = None,
+                      implicit_solvent: Optional[bool] = None) -> None:
+        """Store the partial charges by smile and conformer
 
-    def retrieve_partial(self, tagged_smiles: str, conformer:Array ) -> None:
-        ...
+        Parameters
+        ----------
+        tagged_smiles
+            The smiles records of the molecule
+        conformer
+            The conformer of 
+
+        Returns
+        -------
+            None.
+        """
+
+        existing_partial_charges = self.retrieve_partial(smiles,
+                                                        conformer,
+                                                        charges,
+                                                        basis = basis,
+                                                        method = method,
+                                                        implicit_solvent= implicit_solvent 
+                                                        )
+
+    
+        existing_partial_charges[charge_model] = charges
+
+        existing_partial_charges_str = json.dumps(existing_partial_charges)
+
+        with self._get_session as db:
+            conformer_record = db.query(DBConformerRecord).filter(
+                    DBConformerRecord.tagged_smiles == smiles,
+                    DBConformerRecord.conformer == conformer
+                )
+            conformer_record.charge_model_charges = existing_partial_charges_str
+
+    def retrieve_partial(self, 
+                         smiles: str, 
+                         conformer:Array,
+                         basis: Optional[str] = None,
+                         method: Optional[str] = None,
+                         implicit_solvent: Optional[bool] = None ) -> Dict[str, Array]:
+        
+        with self._get_session as db:
+            
+            smiles = self._tagged_to_canonical_smiles(smiles)
+
+            conformer_query = db.query(DBConformerRecord).filter(
+                DBConformerRecord.tagged_smiles == smiles,
+                DBConformerRecord.conformer == conformer
+            )
+
+            if basis is not None:
+                conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.basis == basis)
+
+            if method is not None:
+                conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.method == method)
+
+            if implicit_solvent is not None:
+                if implicit_solvent:
+                    conformer_query = conformer_query.filter(DBConformerRecord.pcm_settings_id.isnot(None))
+                else:
+                    conformer_query = conformer_query.filter(DBConformerRecord.pcm_settings_id.is_(None))
+
+            conformer_record = conformer_query.first()
+
+            if conformer_record:
+                charge_model_charges = conformer_record.charge_model_charges
+                return json.loads(charge_model_charges)
+            else:
+                return {}
+
+
+
 
     def retrieve(
             self,
