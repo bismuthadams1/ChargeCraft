@@ -353,15 +353,23 @@ class MoleculePropStore(MoleculeESPStore):
                       basis: Optional[str] = None,
                       method: Optional[str] = None,
                       implicit_solvent: Optional[bool] = None) -> None:
-        """Store the partial charges by smile and conformer
+        """Store the partial charges by smile and conformer lookup
 
         Parameters
         ----------
-        tagged_smiles
+        smiles
             The smiles records of the molecule
         conformer
-            The conformer of 
-
+            The conformer array of the molecule
+        charge_model
+            the are model associated with the array  
+        basis
+            optional basis set of the QM method of the molecule
+        method
+            optional QM method specification of the molecule
+        implicit solvent
+            optional solvent model used with the QM method 
+            
         Returns
         -------
             None.
@@ -369,38 +377,37 @@ class MoleculePropStore(MoleculeESPStore):
 
         existing_partial_charges = self.retrieve_partial(smiles,
                                                         conformer,
-                                                        charges,
                                                         basis = basis,
                                                         method = method,
                                                         implicit_solvent= implicit_solvent 
                                                         )
 
-    
-        existing_partial_charges[charge_model] = charges
+        #make the charge array JSON serializable
+        existing_partial_charges[charge_model] = charges.magnitude.tolist()
 
         existing_partial_charges_str = json.dumps(existing_partial_charges)
 
-        with self._get_session as db:
-            conformer_record = db.query(DBConformerRecord).filter(
-                    DBConformerRecord.tagged_smiles == smiles,
-                    DBConformerRecord.conformer == conformer
-                )
-            conformer_record.charge_model_charges = existing_partial_charges_str
+        with self._get_session() as db:
+            conformer_record = db.query(DBConformerRecordProp).filter(
+                            DBConformerRecordProp.tagged_smiles == smiles,
+                            DBConformerRecordProp.coordinates == conformer
+                        ).update({DBConformerRecordProp.charge_model_charges: existing_partial_charges_str})
+           # conformer_record.charge_model_charges = existing_partial_charges_str
 
     def retrieve_partial(self, 
                          smiles: str, 
-                         conformer:Array,
+                         conformer: Array,
                          basis: Optional[str] = None,
                          method: Optional[str] = None,
                          implicit_solvent: Optional[bool] = None ) -> Dict[str, Array]:
         
-        with self._get_session as db:
+        with self._get_session() as db:
             
-            smiles = self._tagged_to_canonical_smiles(smiles)
+            #smiles = self._tagged_to_canonical_smiles(smiles)
 
-            conformer_query = db.query(DBConformerRecord).filter(
-                DBConformerRecord.tagged_smiles == smiles,
-                DBConformerRecord.conformer == conformer
+            conformer_query = db.query(DBConformerRecordProp).filter(
+                DBConformerRecordProp.tagged_smiles == smiles,
+                DBConformerRecordProp.coordinates == conformer
             )
 
             if basis is not None:
@@ -411,17 +418,19 @@ class MoleculePropStore(MoleculeESPStore):
 
             if implicit_solvent is not None:
                 if implicit_solvent:
-                    conformer_query = conformer_query.filter(DBConformerRecord.pcm_settings_id.isnot(None))
+                    conformer_query = conformer_query.filter(DBConformerRecordProp.pcm_settings_id.isnot(None))
                 else:
-                    conformer_query = conformer_query.filter(DBConformerRecord.pcm_settings_id.is_(None))
+                    conformer_query = conformer_query.filter(DBConformerRecordProp.pcm_settings_id.is_(None))
 
-            conformer_record = conformer_query.first()
-
-            if conformer_record:
-                charge_model_charges = conformer_record.charge_model_charges
-                return json.loads(charge_model_charges)
-            else:
-                return {}
+            conformer_results = conformer_query.first()
+     
+            if conformer_results:
+                try:
+                    charge_model_charges = conformer_results.charge_model_charges
+                    return json.loads(charge_model_charges)
+                except AttributeError:
+                    return {}
+                
 
 
 
