@@ -24,6 +24,7 @@ from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
 
+import json
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -70,6 +71,16 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "mbis octopole",
         )
 
+        energy: Array[float] = Field(...,
+        description= "energy associated with the calculation"                             
+        )
+
+        charge_model_charges: Optional[str] = Field(...,
+        description= "partial charges in JSON"
+        )
+
+
+
         @property
         def mulliken_charges_quantity(self) -> unit.Quantity:
             return self.mulliken_charges * unit.e
@@ -102,6 +113,14 @@ class MoleculePropRecord(MoleculeESPRecord):
         def mbis_octopole_quantity(self) -> unit.Quantity:
             return self.mbis_quadropole * unit.e * unit.bohr_radius ** 3       
         
+        @property
+        def energy_quantity(self) -> unit.Quantity:
+            return self.energy * unit.hartree 
+        
+        @property
+        def charge_model_json(self) -> Dict[str, Array]:
+            return json.load(self.charge_model_charges)
+
         @classmethod
         def from_molecule(
             cls,
@@ -111,8 +130,9 @@ class MoleculePropRecord(MoleculeESPRecord):
             esp: unit.Quantity,
             electric_field: Optional[unit.Quantity],
             esp_settings: ESPSettings,
-            variables_dictionary: dict
-        ) -> "MoleculePropRecord":
+            variables_dictionary: dict,
+            energy: int
+            ) -> "MoleculePropRecord":
 
             """Creates a new ``MoleculeESPRecord`` from an existing molecule
             object, taking care of creating the InChI and SMARTS representations.
@@ -171,10 +191,13 @@ class MoleculePropRecord(MoleculeESPRecord):
                 quadropole=quadropole,
                 mbis_dipole= mbis_dipole,
                 mbis_quadropole= mbis_quadropole,
-                mbis_octopole= mbis_octopole
+                mbis_octopole= mbis_octopole,
+                energy = energy,
+                charge_model_charges = None
             )
 
             return molecule_prop_record
+
 
         
 class MoleculePropStore(MoleculeESPStore):
@@ -223,7 +246,9 @@ class MoleculePropStore(MoleculeESPStore):
                 quadropole = db_conformer.quadropole,
                 mbis_dipole= db_conformer.mbis_dipole,
                 mbis_quadropole= db_conformer.mbis_quadropole,
-                mbis_octopole= db_conformer.mbis_octopole
+                mbis_octopole= db_conformer.mbis_octopole,
+                energy = db_conformer.energy,
+                charge_model_charges = None
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
@@ -279,7 +304,9 @@ class MoleculePropStore(MoleculeESPStore):
                 quadropole = record.quadropole,
                 mbis_dipole= record.mbis_dipole,
                 mbis_quadropole= record.mbis_quadropole,
-                mbis_octopole= record.mbis_octopole
+                mbis_octopole= record.mbis_octopole,
+                energy = record.energy,
+                charge_model_charges = None
             )
             for record in records
         )
@@ -317,6 +344,95 @@ class MoleculePropStore(MoleculeESPStore):
         with self._get_session() as db:
             for smiles in records_by_smiles:
                 self._store_smiles_records(db, smiles, records_by_smiles[smiles])            
+
+    def store_partial(self, 
+                      smiles: str, 
+                      conformer: Array, 
+                      charge_model: str, 
+                      charges: Array,
+                      basis: Optional[str] = None,
+                      method: Optional[str] = None,
+                      implicit_solvent: Optional[bool] = None) -> None:
+        """Store the partial charges by smile and conformer lookup
+
+        Parameters
+        ----------
+        smiles
+            The smiles records of the molecule
+        conformer
+            The conformer array of the molecule
+        charge_model
+            the are model associated with the array  
+        basis
+            optional basis set of the QM method of the molecule
+        method
+            optional QM method specification of the molecule
+        implicit solvent
+            optional solvent model used with the QM method 
+            
+        Returns
+        -------
+            None.
+        """
+
+        existing_partial_charges = self.retrieve_partial(smiles,
+                                                        conformer,
+                                                        basis = basis,
+                                                        method = method,
+                                                        implicit_solvent= implicit_solvent 
+                                                        )
+
+        #make the charge array JSON serializable
+        existing_partial_charges[charge_model] = charges.magnitude.tolist()
+
+        existing_partial_charges_str = json.dumps(existing_partial_charges)
+
+        with self._get_session() as db:
+            conformer_record = db.query(DBConformerRecordProp).filter(
+                            DBConformerRecordProp.tagged_smiles == smiles,
+                            DBConformerRecordProp.coordinates == conformer
+                        ).update({DBConformerRecordProp.charge_model_charges: existing_partial_charges_str})
+           # conformer_record.charge_model_charges = existing_partial_charges_str
+
+    def retrieve_partial(self, 
+                         smiles: str, 
+                         conformer: Array,
+                         basis: Optional[str] = None,
+                         method: Optional[str] = None,
+                         implicit_solvent: Optional[bool] = None ) -> Dict[str, Array]:
+        
+        with self._get_session() as db:
+            
+            #smiles = self._tagged_to_canonical_smiles(smiles)
+
+            conformer_query = db.query(DBConformerRecordProp).filter(
+                DBConformerRecordProp.tagged_smiles == smiles,
+                DBConformerRecordProp.coordinates == conformer
+            )
+
+            if basis is not None:
+                conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.basis == basis)
+
+            if method is not None:
+                conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.method == method)
+
+            if implicit_solvent is not None:
+                if implicit_solvent:
+                    conformer_query = conformer_query.filter(DBConformerRecordProp.pcm_settings_id.isnot(None))
+                else:
+                    conformer_query = conformer_query.filter(DBConformerRecordProp.pcm_settings_id.is_(None))
+
+            conformer_results = conformer_query.first()
+     
+            if conformer_results:
+                try:
+                    charge_model_charges = conformer_results.charge_model_charges
+                    return json.loads(charge_model_charges)
+                except AttributeError:
+                    return {}
+                
+
+
 
 
     def retrieve(
