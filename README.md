@@ -1,3 +1,6 @@
 # QM_ESP_Psi4
 
-Main example in the run_example.py script. This calls all the main functions. notebook_test jupyternote book is an area where I have tested various packages. 
+High throughput program which takes a list of molecules, generates conformers, runs a QM calculation on the conformers and stores the QM property outputs in a sqlite database.
+
+
+ESP example in the esp_example.py script, a general one-electron properties is shown properties_example.py. 
