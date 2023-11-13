@@ -29,14 +29,7 @@ class DBConformerRecordProp(DBConformerRecord):
     mbis_quadropole = Column(PickleType, nullable=False)
     mbis_octopole = Column(PickleType, nullable=False)
     energy = Column(PickleType, nullable=False)
-    #willl need to set up a postgresql db for json
-    #charge_model_charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
     charge_model_charges = Column(String, nullable=True) # Change JSONB to String
-    
-#class DBChargeModel(DBBase):
-#    id = Column(Integer, primary_key=True)
-#    conformer_id = Column(Integer, ForeignKey("conformers.id"))
-#    charges = Column(MutableDict.as_mutable(JSONB), nullable=True)
 
 class DBMoleculeRecordProp(DBMoleculeRecord):
 
