@@ -428,7 +428,7 @@ class MoleculePropStore(MoleculeESPStore):
                 try:
                     charge_model_charges = conformer_results.charge_model_charges
                     return json.loads(charge_model_charges)
-                except AttributeError:
+                except (AttributeError, TypeError) as e:
                     return {}
                 
 

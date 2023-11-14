@@ -146,7 +146,7 @@ class CustomPsi4ESPGenerator:
         minimize: bool = True,
         compute_esp: bool = True,
         compute_field: bool = True,
-    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
+    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity], Optional[unit.Quantity]]:
         # Perform the calculation in a temporary directory
 
 
@@ -221,7 +221,7 @@ class Psi4Generate:
                 settings: ESPSettings,
                 dynamic_level: int = 1,
                 directory: str = CWD,
-                ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict()]:
+                ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict, int]:
         
         with temporary_cd(directory):
             grid = grid.to(unit.angstrom).m
