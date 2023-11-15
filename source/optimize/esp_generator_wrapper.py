@@ -151,7 +151,7 @@ class ESPGenerator:
 
     def _psi4_opt(self, qc_mol: QCMolecule) -> QCMolecule:
         """
-        Run an geometry optimisation using PSI4 and geometric.
+        Run an geometry optimivsation using PSI4 and geometric.
 
         Parameters
         ----------
