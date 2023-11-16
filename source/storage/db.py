@@ -15,10 +15,6 @@ from sqlalchemy.orm import Query, Session, relationship
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.ext.declarative import declarative_base
 
-
-
-
-
 class DBConformerRecordProp(DBConformerRecord):
     mulliken_charges = Column(PickleType, nullable=False)
     lowdin_charges = Column(PickleType, nullable=False)
