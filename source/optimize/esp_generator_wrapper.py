@@ -162,7 +162,7 @@ class ESPGenerator:
         -------
             The optimised qcelemental molecule
         """
-        hf_model = Model(method="hf", basis="6-31G*")
+        hf_model = Model(method=self.esp_settings.method, basis=self.esp_settings.basis)
         # do want anything here like density fitting?
         keywords = {}
         return self._qcengine_opt(
