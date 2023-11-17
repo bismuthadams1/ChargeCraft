@@ -24,7 +24,7 @@ def main():
         type="fcc", spacing=0.5, inner_vdw_scale=1.4, outer_vdw_scale=2.0
     )
 
-    esp_settings = ESPSettings(basis="6-31G*", method="hf", grid_settings=grid_settings)
+    esp_settings = ESPSettings(basis="def2-TZVP", method="PBE0-D3BJ", grid_settings=grid_settings) #-D3BJ
 
     #Loop through molecules
     for mol in smiles:
