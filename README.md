@@ -1,4 +1,4 @@
-# QM_ESP_Psi4
+# ChargeCraft
 
 High throughput program which takes a list of molecules, generates conformers, runs a QM calculation on the conformers and stores the QM property outputs in a sqlite database.
 
