@@ -1,8 +1,8 @@
 
 import sys
 import os
-CWD = os.getcwd()
-sys.path.append(os.path.dirname(CWD))
+#CWD = os.getcwd()
+#sys.path.append(os.path.dirname(CWD))
 
 from source.inputSetup.SmilesInputs import ReadInput
 from source.optimize.esp_generator_wrapper import ESPGenerator, PropGenerator
