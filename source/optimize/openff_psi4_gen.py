@@ -9,7 +9,9 @@ from openff.units import unit
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
-from openff.recharge.esp import ESPGenerator, ESPSettings
+from openff.recharge.esp import ESPGenerator
+from openff.storage.ddx_storage import ESPSettings, DDXSettings
+
 from openff.recharge.esp.exceptions import Psi4Error
 from source.utilities.conversion_functions import conf_to_xyz_string
 
@@ -21,7 +23,7 @@ import psi4
 from psi4.core import GeometryUnits
 
 CWD = os.getcwd()
-
+#TODO remove this class, not needed anymore
 class CustomPsi4ESPGenerator:
     """An class which will compute the electrostatic potential of
     a molecule using Psi4.
@@ -244,16 +246,40 @@ class Psi4Generate:
        
             molecule_psi4 = psi4.geometry(conformer_Ang_string.strip())
             
+
             molecule_psi4.set_units(GeometryUnits.Angstrom)
 
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
             
+            enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
+
+            if enable_solvent:
+                if settings.pcm_settings.solver:
+                            psi4.set_options({"pcm_solver": settings.pcm_settings.solver,
+                            "pcm_solvent": settings.pcm_settings.solvent,
+                            "pcm_radii_set": settings.pcm_settings.radii_model,
+                            "pcm_scaling": settings.pcm_settings.radii_scaling,
+                            "pcm_area": settings.pcm_settings.cavity_area})
+                else:
+                    #check if dialetric constant is specified or not
+                    if isinstance(settings.ddx_settings.solvent,str):
+                            psi4.set_options({"ddx": "true",
+                            "ddx_solvent": settings.ddx_settings.solvent,
+                            "ddx_radii_set": settings.ddx_settings.radii_set,
+                            "ddx_model": settings.ddx_settings.ddx_model})
+                    else:
+                            psi4.set_options({"ddx": "true",
+                            "ddx_solvent_epsilon": settings.ddx_settings.solvent,
+                            "ddx_radii_set": settings.ddx_settings.radii_set,
+                            "ddx_model": settings.ddx_settings.ddx_model})
+
+            
             molecule_psi4.set_molecular_charge(formal_charge)
             molecule_psi4.set_multiplicity(spin_multiplicity)
             #Currently QM settings hard coded in, can get from ESPSettings object.
-            E, wfn =  psi4.prop('hf/6-31G*', properties=["GRID_ESP",
+            E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
                                                          "GRID_FIELD",
                                                          "MULLIKEN_CHARGES", 
                                                          "LOWDIN_CHARGES", 

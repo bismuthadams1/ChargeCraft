@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import numpy as np
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.esp import ESPSettings
+from openff.storage.ddx_storage import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
     DBBase,
