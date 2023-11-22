@@ -20,9 +20,10 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp
+from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
+
 
 import json
 
@@ -241,7 +242,7 @@ class MoleculePropStore(MoleculeESPStore):
                     else DBPCMSettings.db_to_instance(db_conformer.pcm_settings)),
                     ddx_settings=None
                     if not db_conformer.ddx_settings
-                    else DBPCMSettings.db_to_instance(db_conformer.ddx_settings)),
+                    else DBDDXSettings.db_to_instance(db_conformer.ddx_settings)),
                 mulliken_charges = db_conformer.mulliken_charges,
                 lowdin_charges = db_conformer.lowdin_charges,
                 mbis_charges = db_conformer.mbis_charges,
@@ -302,7 +303,7 @@ class MoleculePropStore(MoleculeESPStore):
                 ddx_settings=None 
                 if not record.esp_settings.ddx_settings
                 else 
-                esp_settings=DBESPSettings.unique(db, record.esp_settings),
+                esp_settings=DBDDXSettings.unique(db, record.esp_settings),
                 mulliken_charges = record.mulliken_charges,
                 lowdin_charges = record.lowdin_charges,
                 mbis_charges = record.mbis_charges,
