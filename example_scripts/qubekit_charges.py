@@ -6,7 +6,7 @@ sys.path.append("/Users/joshuahorton/Documents/Software/QM_ESP_Psi4")
 
 from qubekit.molecules import Ligand, Dipole, Quadrupole
 from qubekit.nonbonded.virtual_sites import VirtualSites
-from source.storage.storage import MoleculePropStore
+from chargecraft.storage.storage import MoleculePropStore
 from openff.toolkit.topology import Molecule
 from openff.units import unit
 

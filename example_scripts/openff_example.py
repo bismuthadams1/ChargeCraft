@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from source.storage.ddx_storage import ESPSettings, DDXSettings
+from chargecraft.storage.ddx_storage import ESPSettings, DDXSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings

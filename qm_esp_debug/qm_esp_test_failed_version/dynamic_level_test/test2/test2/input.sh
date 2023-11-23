@@ -6,6 +6,6 @@
 
 
 module load Anaconda3
-source activate p4env
+chargecraft activate p4env
 
 psi4 input.dat out.dat -n 4

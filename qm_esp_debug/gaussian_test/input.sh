@@ -9,7 +9,7 @@ module load gaussian/09
 module load ~/mambaforge/condabin/conda
 
 conda activate /mnt/nfs/home/nca121/mambaforge/envs/openff
-#source activate openff
+#chargecraft activate openff
 
 python ase_test.py -n 4
 

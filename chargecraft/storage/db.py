@@ -24,7 +24,7 @@ from sqlalchemy.orm import Query, Session, relationship
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.ext.declarative import declarative_base
 
-from source.storage.ddx_storage import DDXSettings
+from chargecraft.storage.ddx_storage import DDXSettings
 
 
 class DBConformerRecordProp(DBConformerRecord):

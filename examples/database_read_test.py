@@ -6,7 +6,7 @@ sys.path.append('/Users/localadmin/Documents/projects/QM_ESP_Psi4/')
 print(sys.path)
 
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from source.storage.storage import MoleculePropRecord, MoleculePropStore
+from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
 
 prop_store = MoleculePropStore("/Users/localadmin/Documents/projects/QM_ESP_Psi4/examples/prop-store copy.sqlite")
 smiles_list = prop_store.list()

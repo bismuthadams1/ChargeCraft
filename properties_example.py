@@ -1,10 +1,10 @@
-from source.inputSetup.SmilesInputs import ReadInput
-from source.optimize.esp_generator_wrapper import ESPGenerator, PropGenerator
-from source.conformers.conformer_gen import Conformers
+from chargecraft.inputSetup.SmilesInputs import ReadInput
+from chargecraft.optimize.esp_generator_wrapper import ESPGenerator, PropGenerator
+from chargecraft.conformers.conformer_gen import Conformers
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.recharge.grids import LatticeGridSettings
-from source.storage.storage import MoleculePropRecord, MoleculePropStore
-from source.storage.ddx_storage import ESPSettings, DDXSettings, PCMSettings
+from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
+from chargecraft.storage.ddx_storage import ESPSettings, DDXSettings, PCMSettings
 
 
 def main():

@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import numpy as np
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from source.storage.ddx_storage import ESPSettings
+from chargecraft.storage.ddx_storage import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
     DBBase,
@@ -20,7 +20,7 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings
+from chargecraft.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
 

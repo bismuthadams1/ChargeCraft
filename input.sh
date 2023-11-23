@@ -6,8 +6,8 @@
 #SBATCH -c 4
 
 
-source activate /mnt/nfs/home/nca121/mambaforge/envs/openff
+chargecraft activate /mnt/nfs/home/nca121/mambaforge/envs/openff
 
-export PYTHONPATH=/mnt/storage/nobackup/nca121/test_jobs/QM_ESP_Psi4/QM_ESP_Psi4/source:$PYTHONPATH
+export PYTHONPATH=/mnt/storage/nobackup/nca121/test_jobs/QM_ESP_Psi4/QM_ESP_Psi4/chargecraft:$PYTHONPATH
 
 python /mnt/storage/nobackup/nca121/test_jobs/QM_ESP_Psi4/QM_ESP_Psi4/run_example.py
