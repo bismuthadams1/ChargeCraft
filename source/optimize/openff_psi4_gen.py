@@ -10,7 +10,8 @@ from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator
-from openff.storage.ddx_storage import ESPSettings, DDXSettings
+from source.storage.ddx_storage import ESPSettings, DDXSettings
+
 
 from openff.recharge.esp.exceptions import Psi4Error
 from source.utilities.conversion_functions import conf_to_xyz_string

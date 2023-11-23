@@ -57,7 +57,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
     epsilon = Column(Integer, nullable = True)
     radii_set = Column(String(5), nullable = False)
 
-     @classmethod
+    @classmethod
     def _hash(cls, instance: DDXSettings) -> int:
         return hash(
             (
@@ -90,7 +90,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
         )
 
     @classmethod
-    def db_to_instance(cls, db_instance: "DBDDXSettings") -> PCMSettings:
+    def db_to_instance(cls, db_instance: "DBDDXSettings") -> DDXSettings:
         # noinspection PyTypeChecker
         return PCMSettings(
             ddx_model=db_instance.ddx_model,

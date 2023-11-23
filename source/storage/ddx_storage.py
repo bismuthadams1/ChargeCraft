@@ -1,6 +1,7 @@
 from openff.recharge.esp import ESPSettings as OldESPSettings
 from pydantic import BaseModel, Field
 from typing import TYPE_CHECKING, Literal, Optional, Tuple, Union
+from openff.recharge.esp import PCMSettings as OldPCMSettings
 
 from pydantic import BaseModel, Field
 
@@ -17,7 +18,7 @@ class DDXSettings(BaseModel):
     """A class which described the DDX model settings to include in the calculation of an ESP
     """
 
-    solvent: Union[Literal["Water"],PositiveFloat] = Field('Water',
+    solvent: Union[str,PositiveFloat] = Field("Water",
     description="The solvent to simulate. This can be 'Water' as a string or a positive float "
                 "representing a custom dielectric constant.",
     )
@@ -36,5 +37,12 @@ class ESPSettings(OldESPSettings):
     ddx_settings: Optional[DDXSettings] = Field(None,
     description="The settings to use if including the DDX model"
         "model in the ESP calculation.",
+    )
+
+class PCMSettings(OldPCMSettings):
+
+    solvent: str = Field("Water",
+     description="The solvent to simulate. This controls the dielectric constant "
+        "of the model.",
     )
 

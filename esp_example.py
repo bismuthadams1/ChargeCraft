@@ -3,7 +3,7 @@ from source.optimize.esp_generator_wrapper import ESPGenerator
 from source.conformers.conformer_gen import Conformers
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.recharge.grids import LatticeGridSettings
-from openff.storage.ddx_storage import ESPSettings
+from source.storage.ddx_storage import ESPSettings, DDXSettings
 
 
 def main():

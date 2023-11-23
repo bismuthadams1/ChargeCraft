@@ -10,7 +10,7 @@ from rdkit.Chem.rdForceFieldHelpers import MMFFOptimizeMolecule
 from openff.units.elements import SYMBOLS
 from openff.toolkit import Molecule
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.storage.ddx_storage import ESPSettings
+from source.storage.ddx_storage import ESPSettings, DDXSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings, GridSettingsType, GridGenerator
 from openff.recharge.utilities.molecule import smiles_to_molecule

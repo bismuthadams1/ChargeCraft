@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import numpy as np
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.storage.ddx_storage import ESPSettings
+from source.storage.ddx_storage import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
     DBBase,
@@ -239,7 +239,7 @@ class MoleculePropStore(MoleculeESPStore):
                     ),
                     pcm_settings=None
                     if not db_conformer.pcm_settings
-                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings)),
+                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
                     ddx_settings=None
                     if not db_conformer.ddx_settings
                     else DBDDXSettings.db_to_instance(db_conformer.ddx_settings)),
@@ -302,8 +302,8 @@ class MoleculePropStore(MoleculeESPStore):
                 else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
                 ddx_settings=None 
                 if not record.esp_settings.ddx_settings
-                else 
-                esp_settings=DBDDXSettings.unique(db, record.esp_settings),
+                else  DBDDXSettings.unique(db, record.esp_settings),
+                esp_settings = DBESPSettings.unique(db, record.esp_settings),
                 mulliken_charges = record.mulliken_charges,
                 lowdin_charges = record.lowdin_charges,
                 mbis_charges = record.mbis_charges,
