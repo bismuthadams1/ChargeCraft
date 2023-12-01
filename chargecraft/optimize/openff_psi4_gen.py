@@ -221,7 +221,7 @@ class Psi4Generate:
                 molecule: "Molecule",
                 conformer: "QCMolecule",
                 grid: unit.Quantity,
-                settings: ESPSettings,
+                settings: ESPSettings ,
                 dynamic_level: int = 1,
                 directory: str = CWD,
                 ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict, int]:
@@ -258,11 +258,21 @@ class Psi4Generate:
 
             if enable_solvent:
                 if settings.pcm_settings.solver:
-                            psi4.set_options({"pcm_solver": settings.pcm_settings.solver,
-                            "pcm_solvent": settings.pcm_settings.solvent,
-                            "pcm_radii_set": settings.pcm_settings.radii_model,
-                            "pcm_scaling": settings.pcm_settings.radii_scaling,
-                            "pcm_area": settings.pcm_settings.cavity_area})
+                            psi4.set_options({ "pcm__inpit":  f"""
+                                            Units = Angstrom
+                                            Medium {{
+                                                SolverType = {settings.pcm_settings.solver}
+                                                Solvent = {settings.pcm_settings.solvent}
+                                            }}
+
+                                            Cavity {{
+                                                RadiiSet = {settings.pcm_settings.radii_model} # Bondi | UFF | Allinger
+                                                Type = GePol
+                                                Scaling = {settings.pcm_settings.radii_scaling} # radii for spheres scaled by 1.2
+                                                Area = {settings.pcm_settings.cavity_area}
+                                                Mode = "Implicit"
+                                            }}
+                                            """} )
                 else:
                     #check if dialetric constant is specified or not
                     if isinstance(settings.ddx_settings.solvent,str):

@@ -92,7 +92,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
     @classmethod
     def db_to_instance(cls, db_instance: "DBDDXSettings") -> DDXSettings:
         # noinspection PyTypeChecker
-        return PCMSettings(
+        return DDXSettings(
             ddx_model=db_instance.ddx_model,
             solvent=db_instance.solvent,
             epsilon=_float_to_db_int(db_instance.epsilon),
