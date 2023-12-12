@@ -10,7 +10,7 @@ from rdkit.Chem.rdForceFieldHelpers import MMFFOptimizeMolecule
 from openff.units.elements import SYMBOLS
 from openff.toolkit import Molecule
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.esp import ESPSettings
+from chargecraft.storage.ddx_storage import ESPSettings, DDXSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings, GridSettingsType, GridGenerator
 from openff.recharge.utilities.molecule import smiles_to_molecule
@@ -20,9 +20,9 @@ from qcelemental.models.common_models import Model
 
 sys.path.append('/Users/localadmin/Documents/projects/QM_ESP_Psi4')
 
-from source.optimize.openff_psi4_gen import Psi4Generate
-from source.conformers.conformer_gen import Conformers
-from source.utilities.conversion_functions import conf_to_xyz_string
+from chargecraft.optimize.openff_psi4_gen import Psi4Generate
+from chargecraft.conformers.conformer_gen import Conformers
+from chargecraft.utilities.conversion_functions import conf_to_xyz_string
 
 
 import psi4

@@ -1,11 +1,10 @@
-from source.inputSetup.SmilesInputs import ReadInput
-from source.optimize.esp_generator_wrapper import ESPGenerator, PropGenerator
-from source.conformers.conformer_gen import Conformers
+from chargecraft.inputSetup.SmilesInputs import ReadInput
+from chargecraft.optimize.esp_generator_wrapper import ESPGenerator, PropGenerator
+from chargecraft.conformers.conformer_gen import Conformers
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.recharge.grids import LatticeGridSettings
-from openff.recharge.esp import ESPSettings
-from source.storage.storage import MoleculePropRecord, MoleculePropStore
-
+from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
+from chargecraft.storage.ddx_storage import ESPSettings, DDXSettings, PCMSettings
 
 
 def main():
@@ -19,7 +18,12 @@ def main():
         type="fcc", spacing=0.5, inner_vdw_scale=1.4, outer_vdw_scale=2.0
     )
 
-    esp_settings = ESPSettings(basis="def2-TZVP", method="PBE0-D3BJ", grid_settings=grid_settings) #-D3BJ
+    esp_settings = ESPSettings(basis="def2-TZVP",
+                               method="PBE0-D3BJ",
+                               grid_settings=grid_settings,
+                               pcm_settings = PCMSettings(solver="IEFPCM",
+                                                          solvent="Chloroform",
+                                                          )) #-D3BJ
 
     #Loop through molecules
     for mol in smiles:

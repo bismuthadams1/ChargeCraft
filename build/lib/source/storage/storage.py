@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import numpy as np
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.esp import ESPSettings
+from chargecraft.storage.ddx_storage import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
     DBBase,
@@ -20,9 +20,10 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from source.storage.db import DBConformerRecordProp , DBMoleculeRecordProp
+from chargecraft.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
+
 
 import json
 
@@ -238,7 +239,10 @@ class MoleculePropStore(MoleculeESPStore):
                     ),
                     pcm_settings=None
                     if not db_conformer.pcm_settings
-                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings)),
+                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
+                    ddx_settings=None
+                    if not db_conformer.ddx_settings
+                    else DBDDXSettings.db_to_instance(db_conformer.ddx_settings)),
                 mulliken_charges = db_conformer.mulliken_charges,
                 lowdin_charges = db_conformer.lowdin_charges,
                 mbis_charges = db_conformer.mbis_charges,
@@ -296,7 +300,10 @@ class MoleculePropStore(MoleculeESPStore):
                 pcm_settings=None
                 if not record.esp_settings.pcm_settings
                 else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
-                esp_settings=DBESPSettings.unique(db, record.esp_settings),
+                ddx_settings=None 
+                if not record.esp_settings.ddx_settings
+                else  DBDDXSettings.unique(db, record.esp_settings),
+                esp_settings = DBESPSettings.unique(db, record.esp_settings),
                 mulliken_charges = record.mulliken_charges,
                 lowdin_charges = record.lowdin_charges,
                 mbis_charges = record.mbis_charges,
@@ -431,10 +438,6 @@ class MoleculePropStore(MoleculeESPStore):
                 except (AttributeError, TypeError) as e:
                     return {}
                 
-
-
-
-
     def retrieve(
             self,
             smiles: Optional[str] = None,
