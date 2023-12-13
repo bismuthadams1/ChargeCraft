@@ -258,7 +258,7 @@ class Psi4Generate:
 
             if enable_solvent:
                 if settings.pcm_settings.solver:
-                            psi4.set_options({ "pcm__inpit":  f"""
+                            psi4.set_options({ "pcm__input":  f"""
                                             Units = Angstrom
                                             Medium {{
                                                 SolverType = {settings.pcm_settings.solver}

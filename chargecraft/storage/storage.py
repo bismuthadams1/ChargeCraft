@@ -12,7 +12,6 @@ from openff.recharge.esp.storage.db import (
     DBBase,
     DBGridSettings,
     DBConformerRecord,
-    DBESPSettings,
     DBGeneralProvenance,
     DBInformation,
     DBMoleculeRecord,
@@ -20,7 +19,7 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from chargecraft.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings
+from chargecraft.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings, LocalDBESPSettings as DBESPSettings
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -80,7 +79,11 @@ class MoleculePropRecord(MoleculeESPRecord):
         description= "partial charges in JSON"
         )
 
+        esp_settings: ESPSettings = Field(
+        ..., description="The settings used to generate the ESP stored in this record."
+        )
 
+        
 
         @property
         def mulliken_charges_quantity(self) -> unit.Quantity:
@@ -164,7 +167,7 @@ class MoleculePropRecord(MoleculeESPRecord):
 
             # Call the parent class's from_molecule method using super()
             molecule_esp_record = super().from_molecule(
-                molecule, conformer, grid_coordinates, esp, electric_field, esp_settings
+                molecule, conformer, grid_coordinates, esp, electric_field, esp_settings=esp_settings
             )
 
             # Unpack the variables_dictionary and add them to the molecule prop record

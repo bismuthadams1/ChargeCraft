@@ -1,7 +1,7 @@
 from openff.recharge.esp.storage.db import (DBMoleculeRecord, 
                                             DBGridSettings, 
                                             DBPCMSettings, 
-                                            DBESPSettings, 
+                                            DBESPSettings as OldDBESPSettings, 
                                             DBConformerRecord, 
                                             DBBase,
                                             _UniqueMixin,
@@ -18,13 +18,13 @@ from sqlalchemy import (
     String,
     UniqueConstraint
 )
-from sqlalchemy.orm import Query, Session, relationship
+from sqlalchemy.orm import Query, Session, relationship, mapped_column
 #implemenet postgresql in the future 
 #from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.ext.declarative import declarative_base
 
-from chargecraft.storage.ddx_storage import DDXSettings
+from chargecraft.storage.ddx_storage import DDXSettings, ESPSettings
 
 
 class DBConformerRecordProp(DBConformerRecord):
@@ -42,10 +42,12 @@ class DBConformerRecordProp(DBConformerRecord):
     ddx_settings = relationship("DBDDXSettings", uselist = False)
     ddx_settings_id = Column(Integer, ForeignKey("ddx_settings.id"), nullable = True)
 
+    esp_settings = relationship("chargecraft.storage.db.LocalDBESPSettings", uselist=False)
+    esp_settings_id = mapped_column(Integer, ForeignKey("esp_settings.id"), nullable=False, use_existing_column= True)
 
 class DBMoleculeRecordProp(DBMoleculeRecord):
 
-    conformers = relationship("DBConformerRecordProp")
+    conformers = relationship("chargecraft.storage.db.DBConformerRecordProp")
 
 class DBDDXSettings(_UniqueMixin, DBBase):
     __tablename__ = "ddx_settings"
@@ -99,11 +101,15 @@ class DBDDXSettings(_UniqueMixin, DBBase):
             radii_set=db_instance.radii_set
         )   
 
+class LocalDBESPSettings(OldDBESPSettings):
+    
+    @classmethod
+    def _instance_to_db(cls, instance: ESPSettings) -> "LocalDBESPSettings":
+        return LocalDBESPSettings(
+            **instance.dict(
+                exclude={"grid_settings", "pcm_settings", "ddx_settings", "psi4_dft_grid_settings"}
+            ),
+            psi4_dft_grid_settings=instance.psi4_dft_grid_settings.value
+        )
 
-
-
-
-
-
-
-
+#TODO will need to modify DBESPSettings to modify this inherited method https://github.com/openforcefield/openff-recharge/blob/e4e8c370d20ca4f1d51f093617d8d3819137b7bd/openff/recharge/esp/storage/db.py#L277
