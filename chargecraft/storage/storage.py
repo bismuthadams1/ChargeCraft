@@ -177,8 +177,12 @@ class MoleculePropRecord(MoleculeESPRecord):
             mulliken_charges = variables_dictionary["MULLIKEN_CHARGES"]
             lowdin_charges = variables_dictionary["LOWDIN_CHARGES"]
             mbis_charges = variables_dictionary["MBIS CHARGES"]
-            dipole = variables_dictionary["HF DIPOLE"]
-            quadropole = variables_dictionary["HF QUADRUPOLE"]
+            try:
+                dipole = variables_dictionary["HF DIPOLE"]
+                quadropole = variables_dictionary["HF QUADRUPOLE"]
+            except KeyError:
+                dipole = variables_dictionary["DIPOLE"]
+                quadropole = variables_dictionary["QUADRUPOLE"]
             mbis_dipole = variables_dictionary["MBIS DIPOLE"]
             mbis_quadropole = variables_dictionary["MBIS QUADRUPOLE"]
             mbis_octopole= variables_dictionary["MBIS OCTOPOLE"]
