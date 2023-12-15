@@ -324,12 +324,9 @@ class Psi4Generate:
             variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
             #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
             #different indexes for dipole if dft vs hf method
-            if settings.method == 'HF':
-                variables_dictionary["DIPOLE"] = wfn.variable("HF DIPOLE") * unit.e * unit.bohr_radius
-                variables_dictionary["QUADRUPOLE"] = wfn.variable("HF QUADRUPOLE") * unit.e * unit.bohr_radius**2
-            else:
-                variables_dictionary["DIPOLE"] = wfn.variable("DIPOLE") * unit.e * unit.bohr_radius
-                variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
+            variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius
+            variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius**2
+      
             #qcelemental.geometry is outputted in bohr, convert to  angstrom
             final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
 
