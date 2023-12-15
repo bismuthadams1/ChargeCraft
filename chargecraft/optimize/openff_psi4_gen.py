@@ -10,7 +10,7 @@ from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator
-from chargecraft.storage.ddx_storage import ESPSettings, DDXSettings
+from chargecraft.storage.data_classes import ESPSettings, DDXSettings
 
 
 from openff.recharge.esp.exceptions import Psi4Error
@@ -258,7 +258,7 @@ class Psi4Generate:
 
             if enable_solvent:
                 if settings.pcm_settings.solver:
-                            psi4.set_options({ "pcm__inpit":  f"""
+                            psi4.set_options({ "pcm__input":  f"""
                                             Units = Angstrom
                                             Medium {{
                                                 SolverType = {settings.pcm_settings.solver}

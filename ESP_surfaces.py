@@ -9,7 +9,7 @@ from chargecraft.optimize.esp_generator_wrapper import ESPGenerator, PropGenerat
 from chargecraft.conformers.conformer_gen import Conformers
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.recharge.grids import LatticeGridSettings, MSKGridSettings
-from chargecraft.storage.ddx_storage import ESPSettings, DDXSettings
+from chargecraft.storage.data_classes import ESPSettings, DDXSettings
 from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
 
 
