@@ -2,24 +2,27 @@
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 from pydantic import BaseModel, Field
 from contextlib import contextmanager
+from sqlalchemy import create_engine
 
 import numpy as np
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from chargecraft.storage.ddx_storage import ESPSettings
-from openff.recharge.esp.storage.db import (
+from chargecraft.storage.data_classes import ESPSettings
+from chargecraft.storage.db import (
     DB_VERSION,
     DBBase,
     DBGridSettings,
-    DBConformerRecord,
     DBGeneralProvenance,
     DBInformation,
-    DBMoleculeRecord,
+    DBMoleculePropRecord,
     DBPCMSettings,
     DBSoftwareProvenance,
+    DBConformerPropRecord,
+    DBESPSettings,
+    DBDDXSettings
+
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from chargecraft.storage.db import DBConformerRecordProp , DBMoleculeRecordProp, DBDDXSettings, LocalDBESPSettings as DBESPSettings
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -206,12 +209,39 @@ class MoleculePropRecord(MoleculeESPRecord):
         
 class MoleculePropStore(MoleculeESPStore):
     
-    def __init__(self, database_path: str = "prop-store.sqlite"):
-        return super().__init__(database_path = database_path)
+    # def __init__(self, database_path: str = "prop-store.sqlite"):
+    #     return super().__init__(database_path = database_path)
 
+    def __init__(self, database_path: str = "esp-store.sqlite"):
+            """
 
+            Parameters
+            ----------
+            database_path
+                The path to the SQLite database to store to and retrieve data from.
+            """
+            self._database_url = f"sqlite:///{database_path}"
+
+            self._engine = create_engine(self._database_url, echo=False)
+            DBBase.metadata.create_all(self._engine)
+
+            self._session_maker = sessionmaker(
+                autocommit=False, autoflush=False, bind=self._engine
+            )
+
+            # Validate the DB version if present, or add one if not.
+            with self._get_session() as db:
+                db_info = db.query(DBInformation).first()
+
+                if not db_info:
+                    db_info = DBInformation(version=DB_VERSION)
+                    db.add(db_info)
+
+                if db_info.version != DB_VERSION:
+                    raise IncompatibleDBVersion(db_info.version, DB_VERSION)
+            
     @classmethod
-    def _db_records_to_model(cls, db_records: List[DBMoleculeRecordProp]) -> List[MoleculePropRecord]:
+    def _db_records_to_model(cls, db_records: List[DBMoleculePropRecord]) -> List[MoleculePropRecord]:
         """Maps a set of database records into their corresponding
         data models.
 
@@ -224,7 +254,7 @@ class MoleculePropStore(MoleculeESPStore):
         -------
             The mapped data models.
         """
-        #molecule_esp_db_records = super()._db_records_to_model(db_records: List[DBMoleculeRecord])
+        #molecule_esp_db_records = super()._db_records_to_model(db_records: List[DBMoleculePropRecord])
 
         # noinspection PyTypeChecker
         return [
@@ -265,7 +295,7 @@ class MoleculePropStore(MoleculeESPStore):
     @classmethod
     def _store_smiles_records(
         cls, db: Session, smiles: str, records: List[MoleculePropRecord]
-    ) -> DBMoleculeRecordProp:
+    ) -> DBMoleculePropRecord:
         """Stores a set of records which all store information for the same
         molecule.
 
@@ -280,18 +310,18 @@ class MoleculePropStore(MoleculeESPStore):
         """
 
         existing_db_molecule = (
-            db.query(DBMoleculeRecordProp).filter(DBMoleculeRecordProp.smiles == smiles).first()
+            db.query(DBMoleculePropRecord).filter(DBMoleculePropRecord.smiles == smiles).first()
         )
 
         if existing_db_molecule is not None:
             db_record = existing_db_molecule
         else:
-            db_record = DBMoleculeRecordProp(smiles=smiles)
+            db_record = DBMoleculePropRecord(smiles=smiles)
 
         # noinspection PyTypeChecker
         # noinspection PyUnresolvedReferences
         db_record.conformers.extend(
-            DBConformerRecordProp(
+            DBConformerPropRecord(
                 tagged_smiles=record.tagged_smiles,
                 coordinates=record.conformer,
                 grid=record.grid_coordinates,
@@ -393,15 +423,20 @@ class MoleculePropStore(MoleculeESPStore):
                                                         )
 
         #make the charge array JSON serializable
-        existing_partial_charges[charge_model] = charges.magnitude.tolist()
+        # existing_partial_charges[charge_model] = charges.magnitude.tolist()
+
+        if isinstance(charges, np.ndarray):
+         existing_partial_charges[charge_model] = charges.tolist()
+        else:
+         existing_partial_charges[charge_model] = charges
 
         existing_partial_charges_str = json.dumps(existing_partial_charges)
 
         with self._get_session() as db:
-            conformer_record = db.query(DBConformerRecordProp).filter(
-                            DBConformerRecordProp.tagged_smiles == smiles,
-                            DBConformerRecordProp.coordinates == conformer
-                        ).update({DBConformerRecordProp.charge_model_charges: existing_partial_charges_str})
+            conformer_record = db.query(DBConformerPropRecord).filter(
+                            DBConformerPropRecord.tagged_smiles == smiles,
+                            DBConformerPropRecord.coordinates == conformer
+                        ).update({DBConformerPropRecord.charge_model_charges: existing_partial_charges_str})
            # conformer_record.charge_model_charges = existing_partial_charges_str
 
     def retrieve_partial(self, 
@@ -415,9 +450,9 @@ class MoleculePropStore(MoleculeESPStore):
             
             #smiles = self._tagged_to_canonical_smiles(smiles)
 
-            conformer_query = db.query(DBConformerRecordProp).filter(
-                DBConformerRecordProp.tagged_smiles == smiles,
-                DBConformerRecordProp.coordinates == conformer
+            conformer_query = db.query(DBConformerPropRecord).filter(
+                DBConformerPropRecord.tagged_smiles == smiles,
+                DBConformerPropRecord.coordinates == conformer
             )
 
             if basis is not None:
@@ -428,9 +463,9 @@ class MoleculePropStore(MoleculeESPStore):
 
             if implicit_solvent is not None:
                 if implicit_solvent:
-                    conformer_query = conformer_query.filter(DBConformerRecordProp.pcm_settings_id.isnot(None))
+                    conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))
                 else:
-                    conformer_query = conformer_query.filter(DBConformerRecordProp.pcm_settings_id.is_(None))
+                    conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.is_(None))
 
             conformer_results = conformer_query.first()
      
@@ -452,18 +487,18 @@ class MoleculePropStore(MoleculeESPStore):
             according to a set of filters."""
 
             with self._get_session() as db:
-                db_records = db.query(DBMoleculeRecordProp)
+                db_records = db.query(DBMoleculePropRecord)
 
                 if smiles is not None:
                     smiles = self._tagged_to_canonical_smiles(smiles)
-                    db_records = db_records.filter(DBMoleculeRecordProp.smiles == smiles)
+                    db_records = db_records.filter(DBMoleculePropRecord.smiles == smiles)
 
                 if basis is not None or method is not None or implicit_solvent is not None:
-                    db_records = db_records.join(DBConformerRecordProp)
+                    db_records = db_records.join(DBConformerPropRecord)
 
                     if basis is not None or method is not None:
                         db_records = db_records.join(
-                            DBESPSettings, DBConformerRecordProp.esp_settings
+                            DBESPSettings, DBConformerPropRecord.esp_settings
                         )
 
                         if basis is not None:
@@ -474,11 +509,11 @@ class MoleculePropStore(MoleculeESPStore):
                     if implicit_solvent is not None:
                         if implicit_solvent:
                             db_records = db_records.filter(
-                                DBConformerRecordProp.pcm_settings_id.isnot(None)
+                                DBConformerPropRecord.pcm_settings_id.isnot(None)
                             )
                         else:
                             db_records = db_records.filter(
-                                DBConformerRecordProp.pcm_settings_id.is_(None)
+                                DBConformerPropRecord.pcm_settings_id.is_(None)
                             )
 
                 db_records = db_records.all()
@@ -515,4 +550,4 @@ class MoleculePropStore(MoleculeESPStore):
             store."""
 
             with self._get_session() as db:
-                return [smiles for (smiles,) in db.query(DBMoleculeRecordProp.smiles).all()]
+                return [smiles for (smiles,) in db.query(DBMoleculePropRecord.smiles).all()]
