@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 import numpy as np
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from chargecraft.storage.data_classes import ESPSettings
+from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
 from chargecraft.storage.db import (
     DB_VERSION,
     DBBase,
