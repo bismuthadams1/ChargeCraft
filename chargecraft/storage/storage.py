@@ -170,7 +170,11 @@ class MoleculePropRecord(MoleculeESPRecord):
 
             # Call the parent class's from_molecule method using super()
             molecule_esp_record = super().from_molecule(
-                molecule, conformer, grid_coordinates, esp, electric_field, esp_settings=esp_settings
+                molecule = molecule, 
+                conformer = conformer, 
+                grid_coordinates = grid_coordinates, 
+                esp = esp, 
+                electric_field = electric_field   #), esp_settings=esp_settings
             )
 
             # Unpack the variables_dictionary and add them to the molecule prop record
@@ -190,7 +194,7 @@ class MoleculePropRecord(MoleculeESPRecord):
                 grid_coordinates=molecule_esp_record.grid_coordinates,
                 esp=molecule_esp_record.esp,
                 electric_field=molecule_esp_record.electric_field,
-                esp_settings=molecule_esp_record.esp_settings,
+                esp_settings= esp_settings,
                 mulliken_charges=mulliken_charges,
                 lowdin_charges=lowdin_charges,
                 mbis_charges=mbis_charges,
