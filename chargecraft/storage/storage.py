@@ -31,15 +31,55 @@ import json
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
-
     Array = np.ndarray
 else:
     from openff.recharge.utilities.pydantic import Array, wrapped_array_validator
 
 
-class MoleculePropRecord(MoleculeESPRecord):
+class MoleculePropRecord(BaseModel):
         """An extension of the MoleculeESPRecord class to store ESPs, partial charges and quadropoles. 
         """
+
+        tagged_smiles: str = Field(
+        ...,
+        description="The tagged SMILES patterns (SMARTS) which encodes both the "
+        "molecule stored in this record, a map between the atoms and the molecule and "
+        "their coordinates.",
+        )
+
+        conformer: Array[float] = Field(
+            ...,
+            description="The coordinates [Angstrom] of this conformer with "
+            "shape=(n_atoms, 3).",
+        )
+
+        grid_coordinates: Array[float] = Field(
+            ...,
+            description="The grid coordinates [Angstrom] which the ESP was calculated on "
+            "with shape=(n_grid_points, 3).",
+        )
+        esp: Array[float] = Field(
+            ...,
+            description="The value of the ESP [Hartree / e] at each of the grid "
+            "coordinates with shape=(n_grid_points, 1).",
+        )
+        electric_field: Optional[Array[float]] = Field(
+            ...,
+            description="The value of the electric field [Hartree / (e . a0)] at each of "
+            "the grid coordinates with shape=(n_grid_points, 3).",
+        )
+
+        esp_settings: ESPSettings = Field(
+            ..., description="The settings used to generate the ESP stored in this record."
+        )
+
+        _validate_conformer = wrapped_array_validator("conformer", unit.angstrom)
+        _validate_grid = wrapped_array_validator("grid_coordinates", unit.angstrom)
+
+        _validate_esp = wrapped_array_validator("esp", unit.hartree / unit.e)
+        _validate_field = wrapped_array_validator(
+            "electric_field", unit.hartree / (unit.bohr * unit.e)
+        )
 
         #create a series of statric variables
         mulliken_charges: Array[float] = Field(...,
@@ -86,7 +126,21 @@ class MoleculePropRecord(MoleculeESPRecord):
         ..., description="The settings used to generate the ESP stored in this record."
         )
 
-        
+        @property
+        def conformer_quantity(self) -> unit.Quantity:
+            return self.conformer * unit.angstrom
+
+        @property
+        def grid_coordinates_quantity(self) -> unit.Quantity:
+            return self.grid_coordinates * unit.angstrom
+
+        @property
+        def esp_quantity(self) -> unit.Quantity:
+            return self.esp * unit.hartree / unit.e
+
+        @property
+        def electric_field_quantity(self) -> unit.Quantity:
+            return self.electric_field * unit.hartree / (unit.bohr * unit.e)
 
         @property
         def mulliken_charges_quantity(self) -> unit.Quantity:
@@ -168,14 +222,15 @@ class MoleculePropRecord(MoleculeESPRecord):
                 The created record.
             """
 
-            # Call the parent class's from_molecule method using super()
-            molecule_esp_record = super().from_molecule(
-                molecule = molecule, 
-                conformer = conformer, 
-                grid_coordinates = grid_coordinates, 
-                esp = esp, 
-                electric_field = electric_field   #), esp_settings=esp_settings
-            )
+            # # Call the parent class's from_molecule method using super()
+            # molecule_esp_record = super().from_molecule(
+            #     molecule = molecule, 
+            #     conformer = conformer, 
+            #     grid_coordinates = grid_coordinates, 
+            #     esp = esp, 
+            #     electric_field = electric_field,
+            #     esp_settings =  OldESPSettings   #), esp_settings=esp_settings
+            # )
 
             # Unpack the variables_dictionary and add them to the molecule prop record
             mulliken_charges = variables_dictionary["MULLIKEN_CHARGES"]
@@ -187,13 +242,17 @@ class MoleculePropRecord(MoleculeESPRecord):
             mbis_quadropole = variables_dictionary["MBIS QUADRUPOLE"]
             mbis_octopole= variables_dictionary["MBIS OCTOPOLE"]
 
+            tagged_smiles = molecule.to_smiles(
+                isomeric=True, explicit_hydrogens=True, mapped=True
+            )
+
             # Create the MoleculePropRecord with the additional properties
             molecule_prop_record = MoleculePropRecord(
-                tagged_smiles=molecule_esp_record.tagged_smiles,
-                conformer=molecule_esp_record.conformer,
-                grid_coordinates=molecule_esp_record.grid_coordinates,
-                esp=molecule_esp_record.esp,
-                electric_field=molecule_esp_record.electric_field,
+                tagged_smiles = tagged_smiles,
+                conformer = conformer,
+                grid_coordinates = grid_coordinates,
+                esp = esp,
+                electric_field = electric_field,
                 esp_settings= esp_settings,
                 mulliken_charges=mulliken_charges,
                 lowdin_charges=lowdin_charges,
