@@ -255,9 +255,11 @@ class Psi4Generate:
                               "DFT_RADIAL_POINTS":"99"})
             
             enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
-
+            print(f'settings pcm {settings.pcm_settings}')
+            print(f'settings ddx {settings.ddx_settings}')
+            print(f'enable solvent: {enable_solvent}')
             if enable_solvent:
-                if settings.pcm_settings.solver:
+                if settings.pcm_settings.solver is not None:
                             psi4.set_options({ "pcm__input":  f"""
                                             Units = Angstrom
                                             Medium {{
