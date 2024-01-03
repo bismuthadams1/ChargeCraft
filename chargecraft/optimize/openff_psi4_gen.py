@@ -277,16 +277,17 @@ class Psi4Generate:
                                             """} )
                 else:
                     #check if dialetric constant is specified or not
-                    if isinstance(settings.ddx_settings.solvent,str):
-                            psi4.set_options({"ddx": "true",
-                            "ddx_solvent": settings.ddx_settings.solvent,
-                            "ddx_radii_set": settings.ddx_settings.radii_set,
-                            "ddx_model": settings.ddx_settings.ddx_model})
-                    else:
+                    if settings.ddx_settings.solvent.isnumeric():
                             psi4.set_options({"ddx": "true",
                             "ddx_solvent_epsilon": settings.ddx_settings.solvent,
                             "ddx_radii_set": settings.ddx_settings.radii_set,
                             "ddx_model": settings.ddx_settings.ddx_model})
+                    else:
+                         psi4.set_options({"ddx": "true",
+                            "ddx_solvent": settings.ddx_settings.solvent,
+                            "ddx_radii_set": settings.ddx_settings.radii_set,
+                            "ddx_model": settings.ddx_settings.ddx_model})
+                          
 
             
             molecule_psi4.set_molecular_charge(formal_charge)
