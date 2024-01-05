@@ -277,16 +277,19 @@ class Psi4Generate:
                                             """} )
                 else:
                     #check if dialetric constant is specified or not
-                    if settings.ddx_settings.solvent.isnumeric():
-                            psi4.set_options({"ddx": "true",
-                            "ddx_solvent_epsilon": settings.ddx_settings.solvent,
-                            "ddx_radii_set": settings.ddx_settings.radii_set,
-                            "ddx_model": settings.ddx_settings.ddx_model})
+                    if settings.ddx_settings.epsilon is not None:
+                        print('ddx numeric option')
+                        psi4.set_options({"ddx": "true", #supply a solvent here to see if epsilon then gets picked up
+                        "DDX_SOLVENT_EPSILON": settings.ddx_settings.epsilon,
+                        "DDX_RADII_SET": settings.ddx_settings.radii_set,
+                        "DDX_MODEL": settings.ddx_settings.ddx_model,
+                        "DDX_SOLVENT":"water"})
                     else:
-                         psi4.set_options({"ddx": "true",
-                            "ddx_solvent": settings.ddx_settings.solvent,
-                            "ddx_radii_set": settings.ddx_settings.radii_set,
-                            "ddx_model": settings.ddx_settings.ddx_model})
+                        print('ddx solvent option')
+                        psi4.set_options({"ddx": "true",
+                        "DDX_SOLVENT": settings.ddx_settings.solvent,
+                        "DDX_RADII_SET": settings.ddx_settings.radii_set,
+                        "DDX_MODEL": settings.ddx_settings.ddx_model})
                           
 
             
