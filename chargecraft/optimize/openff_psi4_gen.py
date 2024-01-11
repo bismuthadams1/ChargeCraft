@@ -241,7 +241,7 @@ class Psi4Generate:
             conformer_Ang = conformer_Ang.conformers[0].to(unit.angstrom).m
 
             #TODO check reorientation here
-            conformer_Ang_string = ""
+            conformer_Ang_string = "nocom\nnoreorient\n"
             for index, atom in enumerate(molecule.atoms):
                   conformer_Ang_string += f"{SYMBOLS[atom.atomic_number]}\t{conformer_Ang[index, 0]}\t{conformer_Ang[index, 1]}\t{conformer_Ang[index, 2]}\n"
        
