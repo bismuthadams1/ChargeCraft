@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 
 import numpy as np
 from openff.units import unit
-from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
+from openff.recharge.esp.storage import MoleculeESPStore
 from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
 from chargecraft.storage.db import (
     DB_VERSION,
@@ -398,7 +398,7 @@ class MoleculePropStore(MoleculeESPStore):
                 else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
                 ddx_settings=None 
                 if not record.esp_settings.ddx_settings
-                else  DBDDXSettings.unique(db, record.esp_settings),
+                else  DBDDXSettings.unique(db, record.esp_settings.ddx_settings),
                 esp_settings = DBESPSettings.unique(db, record.esp_settings),
                 mulliken_charges = record.mulliken_charges,
                 lowdin_charges = record.lowdin_charges,

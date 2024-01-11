@@ -240,6 +240,58 @@ class DBPCMSettings(_UniqueMixin, DBBase):
         )
 
 
+class DBDDXSettings(_UniqueMixin, DBBase):
+    __tablename__ = "ddx_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+ 
+    ddx_model = Column(String(6), nullable = False)
+    solvent = Column(String(20), nullable = True)
+    epsilon = Column(Integer, nullable = True)
+    radii_set = Column(String(5), nullable = False)
+
+    @classmethod
+    def _hash(cls, instance: DDXSettings) -> int:
+        return hash(
+            (
+                instance.ddx_model,
+                instance.solvent,
+                _float_to_db_int(instance.epsilon),
+                instance.radii_set
+            )
+        )
+
+    @classmethod
+    def _query(cls, db: Session, instance: DDXSettings) -> Query:
+
+        return (
+            db.query(DBDDXSettings)
+            .filter(DBDDXSettings.ddx_model == instance.ddx_model)
+            .filter(DBDDXSettings.solvent == instance.solvent)
+            .filter(DBDDXSettings.epsilon == instance.epsilon)
+            .filter(DBDDXSettings.radii_set == instance.radii_set)
+        )
+
+    @classmethod
+    def _instance_to_db(cls, instance: DDXSettings) -> "DBDDXSettings":
+        return DBDDXSettings(
+            ddx_model=instance.ddx_model,
+            solvent=instance.solvent,
+            epsilon=instance.epsilon,
+            radii_set=instance.radii_set
+        )
+
+    @classmethod
+    def db_to_instance(cls, db_instance: "DBDDXSettings") -> DDXSettings:
+        # noinspection PyTypeChecker
+        return DDXSettings(
+            ddx_model=db_instance.ddx_model,
+            solvent=db_instance.solvent,
+            epsilon=_float_to_db_int(db_instance.epsilon),
+            radii_set=db_instance.radii_set
+        )   
+
+
 class DBESPSettings(_UniqueMixin, DBBase):
     __tablename__ = "esp_settings"
     __table_args__ = (UniqueConstraint("basis", "method"),)
@@ -316,57 +368,6 @@ class DBConformerPropRecord(DBBase):
     ddx_settings = relationship("DBDDXSettings", uselist = False)
     ddx_settings_id = Column(Integer, ForeignKey("ddx_settings.id"), nullable = True)
 
-class DBDDXSettings(_UniqueMixin, DBBase):
-    __tablename__ = "ddx_settings"
-
-    id = Column(Integer, primary_key=True, index=True)
- 
-    ddx_model = Column(String(6), nullable = False)
-    solvent = Column(String(20), nullable = True)
-    epsilon = Column(Integer, nullable = True)
-    radii_set = Column(String(5), nullable = False)
-
-    @classmethod
-    def _hash(cls, instance: DDXSettings) -> int:
-        return hash(
-            (
-                instance.ddx_model,
-                instance.solvent,
-                _float_to_db_int(instance.epsilon),
-                instance.radii_set
-            )
-        )
-
-    @classmethod
-    def _query(cls, db: Session, instance: DDXSettings) -> Query:
-        epsilon = _float_to_db_int(instance.solvent)
-
-        return (
-            db.query(DBDDXSettings)
-            .filter(DBDDXSettings.ddx_model == instance.ddx_model)
-            .filter(DBDDXSettings.solvent == instance.solvent)
-            .filter(DBDDXSettings.epsilon == instance.epsilon)
-            .filter(DBDDXSettings.radii_set == instance.radii_set)
-        )
-
-    @classmethod
-    def _instance_to_db(cls, instance: DDXSettings) -> "DBDDXSettings":
-        return DBDDXSettings(
-            ddx_model=instance.ddx_model,
-            solvent=instance.solvent,
-            epsilon=instance.epsilon,
-            radii_set=instance.radii_set
-        )
-
-    @classmethod
-    def db_to_instance(cls, db_instance: "DBDDXSettings") -> DDXSettings:
-        # noinspection PyTypeChecker
-        return DDXSettings(
-            ddx_model=db_instance.ddx_model,
-            solvent=db_instance.solvent,
-            epsilon=_float_to_db_int(db_instance.epsilon),
-            radii_set=db_instance.radii_set
-        )   
 
 
 class DBMoleculePropRecord(DBBase):
