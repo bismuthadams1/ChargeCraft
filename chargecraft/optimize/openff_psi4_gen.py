@@ -240,20 +240,20 @@ class Psi4Generate:
 
             conformer_Ang = conformer_Ang.conformers[0].to(unit.angstrom).m
 
-    
+            #TODO check reorientation here
             conformer_Ang_string = ""
             for index, atom in enumerate(molecule.atoms):
                   conformer_Ang_string += f"{SYMBOLS[atom.atomic_number]}\t{conformer_Ang[index, 0]}\t{conformer_Ang[index, 1]}\t{conformer_Ang[index, 2]}\n"
        
             molecule_psi4 = psi4.geometry(conformer_Ang_string.strip())
-            
-
+            print(molecule_psi4)
             molecule_psi4.set_units(GeometryUnits.Angstrom)
 
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
             
+                # print(f'settings')
             enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
 
             if enable_solvent:
