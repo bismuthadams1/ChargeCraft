@@ -22,6 +22,7 @@ from qcelemental.models import Molecule as QCMolecule
 
 import psi4
 from psi4.core import GeometryUnits
+from psi4.core import Options
 
 CWD = os.getcwd()
 #TODO remove this class, not needed anymore
