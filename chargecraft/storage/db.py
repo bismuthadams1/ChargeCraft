@@ -239,7 +239,6 @@ class DBPCMSettings(_UniqueMixin, DBBase):
             cavity_area=_db_int_to_float(db_instance.cavity_area),
         )
 
-
 class DBDDXSettings(_UniqueMixin, DBBase):
     __tablename__ = "ddx_settings"
 
@@ -263,16 +262,14 @@ class DBDDXSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _query(cls, db: Session, instance: DDXSettings) -> Query:
-        epsilon =  _db_int_to_float(instance.epsilon) if instance.epsilon is not None else None
-        radii_set = _db_int_to_float(instance.radii_set)
-
+        epsilon =  _float_to_db_int(instance.epsilon) if instance.epsilon is not None else None
 
         return (
             db.query(DBDDXSettings)
             .filter(DBDDXSettings.ddx_model == instance.ddx_model)
             .filter(DBDDXSettings.solvent == instance.solvent)
             .filter(DBDDXSettings.epsilon == epsilon)
-            .filter(DBDDXSettings.radii_set == radii_set)
+            .filter(DBDDXSettings.radii_set == instance.radii_set)
         )
 
     @classmethod
@@ -280,8 +277,8 @@ class DBDDXSettings(_UniqueMixin, DBBase):
         return DBDDXSettings(
             ddx_model=instance.ddx_model,
             solvent=instance.solvent,
-            epsilon=instance.epsilon,
-            radii_set=_float_to_db_int(instance.radii_set) if instance.epsilon is not None else None
+            epsilon=_float_to_db_int(instance.epsilon) if instance.epsilon is not None else None,
+            radii_set=instance.radii_set
         )
 
     @classmethod
@@ -290,7 +287,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
         return DDXSettings(
             ddx_model=db_instance.ddx_model,
             solvent=db_instance.solvent,
-            epsilon=_float_to_db_int(db_instance.epsilon) if db_instance.epsilon is not None else None,
+            epsilon=_db_int_to_float(db_instance.epsilon) if db_instance.epsilon is not None else None,
             radii_set=db_instance.radii_set
         )   
 
