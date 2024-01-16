@@ -213,7 +213,7 @@ class PropGenerator(ESPGenerator):
 
         
     
-    def run_props(self) -> None:
+    def run_props(self) -> list[np.array]:
         """
         Run psi4 to generate the ESPs and the properties, the function loops through the conformers and handles errors.
         Appends the outputs to the sqlfile.
@@ -225,6 +225,7 @@ class PropGenerator(ESPGenerator):
         -------
             The contents of the input file.
         """
+        conformer_list = []
         for conf_no in range(self.molecule.n_conformers):
             print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
             # #The default dynamic level is 1, we've made it higher to
@@ -234,6 +235,9 @@ class PropGenerator(ESPGenerator):
             xtb_opt_mol = self._xtb_ff_opt(qc_mol)
             #hf QM optimisation           
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+            #print out optimised conformer
+            hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
+            conformer_list.append(hf_opt_mol_conf.conformers[0].to(unit.angstrom))
             #ensure molecule is not orientated
             qc_mol_opt = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
             #QC geometries a given as bohr in the qcelement .geometry attribute, conversion to angstrom is handled in the GridGenerator.generate() method. 
@@ -251,6 +255,7 @@ class PropGenerator(ESPGenerator):
             self.records.append(record)
             print(variables_dictionary)
         self.prop_data_store.store(*self.records)
+        return conformer_list
 
     def _prop_generator_wrapper(self, 
                                 conformer: "QCMolecule", 
