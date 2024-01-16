@@ -297,44 +297,48 @@ class Psi4Generate:
             molecule_psi4.set_molecular_charge(formal_charge)
             molecule_psi4.set_multiplicity(spin_multiplicity)
             #Currently QM settings hard coded in, can get from ESPSettings object.
-            E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
-                                                         "GRID_FIELD",
-                                                         "MULLIKEN_CHARGES", 
-                                                         "LOWDIN_CHARGES", 
-                                                         "DIPOLE", 
-                                                         "QUADRUPOLE", 
-                                                         "MBIS_CHARGES"], 
-                                                         molecule = molecule_psi4,
-                                                         return_wfn = True)
+            try:
+                E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
+                                                                "GRID_FIELD",
+                                                                "MULLIKEN_CHARGES", 
+                                                                "LOWDIN_CHARGES", 
+                                                                "DIPOLE", 
+                                                                "QUADRUPOLE", 
+                                                                "MBIS_CHARGES"], 
+                                                                molecule = molecule_psi4,
+                                                                return_wfn = True)
 
-            esp = (
-                numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
-            )
-        
-            electric_field = (
-                numpy.loadtxt("grid_field.dat")
-                * unit.hartree
-                / (unit.e * unit.bohr)
-            )
-
-            #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
-            #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
+                esp = (
+                    numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+                )
             
-            variables_dictionary = dict()
-            #psi4 computes charges in a.u., elementary charge
-            variables_dictionary["MULLIKEN_CHARGES"] = wfn.variable("MULLIKEN_CHARGES") * unit.e
-            variables_dictionary["LOWDIN_CHARGES"] = wfn.variable("LOWDIN_CHARGES") * unit.e
-            variables_dictionary["MBIS CHARGES"] = wfn.variable("MBIS CHARGES") * unit.e
-            #psi4 grab the MBIS multipoles
-            variables_dictionary["MBIS DIPOLE"] = wfn.variable("MBIS DIPOLES") * unit.e * unit.bohr_radius
-            variables_dictionary["MBIS QUADRUPOLE"] = wfn.variable("MBIS QUADRUPOLES") * unit.e * unit.bohr_radius**2
-            variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
-            #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
-            #different indexes for dipole if dft vs hf method
-            variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius
-            variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius**2
-      
-            #qcelemental.geometry is outputted in bohr, convert to  angstrom
-            final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
+                electric_field = (
+                    numpy.loadtxt("grid_field.dat")
+                    * unit.hartree
+                    / (unit.e * unit.bohr)
+                )
 
-            return final_coordinates, grid, esp, electric_field, variables_dictionary, E
+                #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
+                #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
+                
+                variables_dictionary = dict()
+                #psi4 computes charges in a.u., elementary charge
+                variables_dictionary["MULLIKEN_CHARGES"] = wfn.variable("MULLIKEN_CHARGES") * unit.e
+                variables_dictionary["LOWDIN_CHARGES"] = wfn.variable("LOWDIN_CHARGES") * unit.e
+                variables_dictionary["MBIS CHARGES"] = wfn.variable("MBIS CHARGES") * unit.e
+                #psi4 grab the MBIS multipoles
+                variables_dictionary["MBIS DIPOLE"] = wfn.variable("MBIS DIPOLES") * unit.e * unit.bohr_radius
+                variables_dictionary["MBIS QUADRUPOLE"] = wfn.variable("MBIS QUADRUPOLES") * unit.e * unit.bohr_radius**2
+                variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
+                #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
+                #different indexes for dipole if dft vs hf method
+                variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius
+                variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius**2
+            
+                #qcelemental.geometry is outputted in bohr, convert to  angstrom
+                final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
+
+                return final_coordinates, grid, esp, electric_field, variables_dictionary, E
+            except Exception as e:
+                return Psi4Error
+
