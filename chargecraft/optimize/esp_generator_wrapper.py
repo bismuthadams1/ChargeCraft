@@ -244,8 +244,9 @@ class PropGenerator(ESPGenerator):
             grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))
             try:
                  conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
-            except Psi4Error:
+            except Exception as E:
                  #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
+                 print(f'properties failure with: {self.esp_settings.method}/{self.esp_settings.basis} and pcm {self.esp_settings.pcm_settings} and ddx {self.esp_settings.ddx_settings} ')
                  continue
             
             record = MoleculePropRecord.from_molecule(

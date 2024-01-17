@@ -569,6 +569,7 @@ class MoleculePropStore(MoleculeESPStore):
                         if method is not None:
                             db_records = db_records.filter(DBESPSettings.method == method)
 
+                    #TODO filter between PCM and DDX and solvent types here
                     if implicit_solvent is not None:
                         if implicit_solvent:
                             db_records = db_records.filter(
