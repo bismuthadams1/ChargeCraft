@@ -122,10 +122,6 @@ class MoleculePropRecord(BaseModel):
         description= "partial charges in JSON"
         )
 
-        esp_settings: ESPSettings = Field(
-        ..., description="The settings used to generate the ESP stored in this record."
-        )
-
         @property
         def conformer_quantity(self) -> unit.Quantity:
             return self.conformer * unit.angstrom
