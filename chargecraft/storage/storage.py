@@ -565,8 +565,8 @@ class MoleculePropStore(MoleculeESPStore):
                     #TODO filter between PCM and DDX and solvent types here
                     if implicit_solvent is not None:
                         if implicit_solvent == 'PCM':
-                                db_records = db_records.join(DBConformerPropRecord.pcm_settings) 
-                                db_records = db_records.filter(DBConformerPropRecord.pcm_settings.isnot(None))  
+                                # db_records = db_records.join(DBESPSettings, DBConformerPropRecord.pcm_settings) 
+                                db_records = db_records.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))  
                                 # db_records.join(DBPCMSettings,DBConformerPropRecord.pcm_settings)
                                 if solver is not None:
                                     db_records = db_records.filter(DBPCMSettings.solver == pcm_solver)
@@ -580,13 +580,12 @@ class MoleculePropStore(MoleculeESPStore):
                                     db_records = db_records.filter(DBPCMSettings.radii_scaling == radii_scaling)
                                 if cavity_area is not None:
                                     db_records = db_records.filter(DBPCMSettings.cavity_area == cavity_area)
-                                db_records = db_records.filter(
-                                    DBConformerPropRecord.pcm_settings_id.is_(None)
-                                )
+                                # db_records = db_records.filter(
+                                #     DBConformerPropRecord.pcm_settings_id.is_(None)
+                                # )
                         elif implicit_solvent == 'DDX':
-                                db_records.join(DBDDXSettings,DBConformerPropRecord.ddx_settings)
-                                db_records = db_records.filter(DBConformerPropRecord.pcm_settings.isnot(None))  
-
+                                # db_records.join(DBESPSettings, DBConformerPropRecord.ddx_settings)
+                                db_records = db_records.filter(DBConformerPropRecord.ddx_settings_id.isnot(None))  
                                 if solvent_type is not None:
                                     db_records = db_records.filter(DBDDXSettings.solvent == solvent_type)
                                 if solvent_epsilon is not None:
