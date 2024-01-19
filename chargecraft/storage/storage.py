@@ -25,8 +25,7 @@ from chargecraft.storage.db import (
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from collections import defaultdict
 from sqlalchemy.orm import Session, sessionmaker
-
-
+from typing import Literal
 import json
 
 if TYPE_CHECKING:
@@ -530,7 +529,7 @@ class MoleculePropStore(MoleculeESPStore):
             smiles: Optional[str] = None,
             basis: Optional[str] = None,
             method: Optional[str] = None,
-            implicit_solvent: Optional[bool] = None,
+            implicit_solvent: Optional[Literal['PCM','DDX']] = None,
             solver: Optional[str] = None,
             solvent_type: Optional[str] = None,
             solvent_epsilon: Optional[bool] = None,
@@ -565,9 +564,12 @@ class MoleculePropStore(MoleculeESPStore):
 
                     #TODO filter between PCM and DDX and solvent types here
                     if implicit_solvent is not None:
-                        if implicit_solvent:
-                            if DBConformerPropRecord.pcm_settings_id.isnot(None):
-                                db_records.join(DBPCMSettings,DBConformerPropRecord.pcm_settings)
+                        if implicit_solvent == 'PCM':
+                                db_records = db_records.join(DBConformerPropRecord.pcm_settings) 
+                                db_records = db_records.filter(DBConformerPropRecord.pcm_settings.isnot(None))  
+                                # db_records.join(DBPCMSettings,DBConformerPropRecord.pcm_settings)
+                                if solver is not None:
+                                    db_records = db_records.filter(DBPCMSettings.solver == pcm_solver)
                                 if solvent_type is not None:
                                     db_records = db_records.filter(DBPCMSettings.solvent == solvent_type)
                                 if solver is not None:
@@ -576,18 +578,28 @@ class MoleculePropStore(MoleculeESPStore):
                                     db_records = db_records.filter(DBPCMSettings.radii_model == radii_set)
                                 if radii_scaling is not None:
                                     db_records = db_records.filter(DBPCMSettings.radii_scaling == radii_scaling)
-                            else:
+                                if cavity_area is not None:
+                                    db_records = db_records.filter(DBPCMSettings.cavity_area == cavity_area)
                                 db_records = db_records.filter(
                                     DBConformerPropRecord.pcm_settings_id.is_(None)
                                 )
-                            
-                          
-                           
-                                db_records = db_records.filter(
-                                    DBConformerPropRecord.pcm_settings_id.isnot(None)
-                                )
-                         
+                        elif implicit_solvent == 'DDX':
+                                db_records.join(DBDDXSettings,DBConformerPropRecord.ddx_settings)
+                                db_records = db_records.filter(DBConformerPropRecord.pcm_settings.isnot(None))  
 
+                                if solvent_type is not None:
+                                    db_records = db_records.filter(DBDDXSettings.solvent == solvent_type)
+                                if solvent_epsilon is not None:
+                                    db_records = db_records.filter(DBDDXSettings.epsilon == solvent_epsilon)
+                                if radii_set is not None:
+                                    db_records = db_records.filter(DBDDXSettings.radii_set == radii_set)
+                                if ddx_model is not None:
+                                    db_records = db_records.filter(DBDDXSettings.radii_set == radii_set)
+                            # else:
+                            #     db_records = db_records.filter(
+                            #         DBConformerPropRecord.ddx_settings_id.is_(None)
+                            #     )
+                           
                 db_records = db_records.all()
 
                 records = self._db_records_to_model(db_records)
