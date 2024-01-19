@@ -218,16 +218,6 @@ class MoleculePropRecord(BaseModel):
                 The created record.
             """
 
-            # # Call the parent class's from_molecule method using super()
-            # molecule_esp_record = super().from_molecule(
-            #     molecule = molecule, 
-            #     conformer = conformer, 
-            #     grid_coordinates = grid_coordinates, 
-            #     esp = esp, 
-            #     electric_field = electric_field,
-            #     esp_settings =  OldESPSettings   #), esp_settings=esp_settings
-            # )
-
             # Unpack the variables_dictionary and add them to the molecule prop record
             mulliken_charges = variables_dictionary["MULLIKEN_CHARGES"]
             lowdin_charges = variables_dictionary["LOWDIN_CHARGES"]
@@ -541,6 +531,14 @@ class MoleculePropStore(MoleculeESPStore):
             basis: Optional[str] = None,
             method: Optional[str] = None,
             implicit_solvent: Optional[bool] = None,
+            solver: Optional[str] = None,
+            solvent_type: Optional[str] = None,
+            solvent_epsilon: Optional[bool] = None,
+            radii_set: Optional[str] = None,
+            ddx_model: Optional[str] = None,
+            pcm_solver: Optional[str] = None,
+            radii_scaling: Optional[bool] = None,
+            cavity_area: Optional[float] = None
         ) -> List[MoleculePropRecord]:
             """Retrieve records stored in this data store, optionally
             according to a set of filters."""
@@ -568,13 +566,27 @@ class MoleculePropStore(MoleculeESPStore):
                     #TODO filter between PCM and DDX and solvent types here
                     if implicit_solvent is not None:
                         if implicit_solvent:
-                            db_records = db_records.filter(
-                                DBConformerPropRecord.pcm_settings_id.isnot(None)
-                            )
-                        else:
-                            db_records = db_records.filter(
-                                DBConformerPropRecord.pcm_settings_id.is_(None)
-                            )
+                            if DBConformerPropRecord.pcm_settings_id.isnot(None):
+                                db_records.join(DBPCMSettings,DBConformerPropRecord.pcm_settings)
+                                if solvent_type is not None:
+                                    db_records = db_records.filter(DBPCMSettings.solvent == solvent_type)
+                                if solver is not None:
+                                    db_records = db_records.filter(DBPCMSettings.solver == solver)
+                                if radii_set is not None:
+                                    db_records = db_records.filter(DBPCMSettings.radii_model == radii_set)
+                                if radii_scaling is not None:
+                                    db_records = db_records.filter(DBPCMSettings.radii_scaling == radii_scaling)
+                            else:
+                                db_records = db_records.filter(
+                                    DBConformerPropRecord.pcm_settings_id.is_(None)
+                                )
+                            
+                          
+                           
+                                db_records = db_records.filter(
+                                    DBConformerPropRecord.pcm_settings_id.isnot(None)
+                                )
+                         
 
                 db_records = db_records.all()
 

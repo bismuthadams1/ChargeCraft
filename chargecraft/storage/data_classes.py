@@ -23,7 +23,7 @@ class DDXSettings(BaseModel):
     description="The solvent to simulate. This can be 'Water' as a string",
     )
 
-    epsilon: Optional[str] = Field(None,
+    epsilon: PositiveFloat = Field(None,
     description="the dialectric constant of the fluid")
 
     radii_set: Literal["uff","bondi"] = Field("uff",
