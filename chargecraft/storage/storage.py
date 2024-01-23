@@ -3,11 +3,14 @@ from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 from pydantic import BaseModel, Field
 from contextlib import contextmanager
 from sqlalchemy import create_engine
-
+import warnings
+import functools
 import numpy as np
+
 from openff.units import unit
 from openff.recharge.esp.storage import MoleculeESPStore
 from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from chargecraft.storage.db import (
     DB_VERSION,
     DBBase,
@@ -20,11 +23,10 @@ from chargecraft.storage.db import (
     DBConformerPropRecord,
     DBESPSettings,
     DBDDXSettings
-
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from collections import defaultdict
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, contains_eager
 from typing import Literal
 import json
 
@@ -240,6 +242,7 @@ class MoleculePropRecord(BaseModel):
                 electric_field = electric_field,
                 esp_settings= esp_settings,
                 mulliken_charges=mulliken_charges,
+
                 lowdin_charges=lowdin_charges,
                 mbis_charges=mbis_charges,
                 dipole=dipole,
@@ -255,7 +258,7 @@ class MoleculePropRecord(BaseModel):
 
 
         
-class MoleculePropStore(MoleculeESPStore):
+class MoleculePropStore:
     
     # def __init__(self, database_path: str = "prop-store.sqlite"):
     #     return super().__init__(database_path = database_path)
@@ -303,7 +306,7 @@ class MoleculePropStore(MoleculeESPStore):
             The mapped data models.
         """
         #molecule_esp_db_records = super()._db_records_to_model(db_records: List[DBMoleculePropRecord])
-
+        # print(f'ddx settings: {[ db_record.conformers for db_record in db_records]}')
         # noinspection PyTypeChecker
         return [
             MoleculePropRecord(
@@ -403,6 +406,31 @@ class MoleculePropStore(MoleculeESPStore):
             db.add(db_record)
 
         return db_record
+
+    @classmethod
+    @functools.lru_cache(10000)
+    def _tagged_to_canonical_smiles(cls, tagged_smiles: str) -> str:
+        """Converts a smiles pattern which contains atom indices into
+        a canonical smiles pattern without indices.
+
+        Parameters
+        ----------
+        tagged_smiles
+            The tagged smiles pattern to convert.
+
+        Returns
+        -------
+            The canonical smiles pattern.
+        """
+        from openff.toolkit import Molecule
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
+            smiles = Molecule.from_smiles(
+                tagged_smiles, allow_undefined_stereo=True
+            ).to_smiles(isomeric=False, explicit_hydrogens=False, mapped=False)
+
+        return smiles
 
 
     def store(self, *records: MoleculePropRecord):
@@ -556,6 +584,8 @@ class MoleculePropStore(MoleculeESPStore):
                         db_records = db_records.join(
                             DBESPSettings, DBConformerPropRecord.esp_settings
                         )
+                        db_records = db_records.options(contains_eager(DBConformerPropRecord.esp_settings))
+
 
                         if basis is not None:
                             db_records = db_records.filter(DBESPSettings.basis == basis)
@@ -565,8 +595,10 @@ class MoleculePropStore(MoleculeESPStore):
                     #TODO filter between PCM and DDX and solvent types here
                     if implicit_solvent is not None:
                         if implicit_solvent == 'PCM':
-                                # db_records = db_records.join(DBESPSettings, DBConformerPropRecord.pcm_settings) 
+                                db_records = db_records.join(DBPCMSettings, DBConformerPropRecord.pcm_settings) 
                                 db_records = db_records.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))  
+                                db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.pcm_settings_id))
+                                # db_records = db_records.filter(DBConformerPropRecord.ddx_settings_id.is_(None))  
                                 # db_records.join(DBPCMSettings,DBConformerPropRecord.pcm_settings)
                                 if solver is not None:
                                     db_records = db_records.filter(DBPCMSettings.solver == pcm_solver)
@@ -580,12 +612,13 @@ class MoleculePropStore(MoleculeESPStore):
                                     db_records = db_records.filter(DBPCMSettings.radii_scaling == radii_scaling)
                                 if cavity_area is not None:
                                     db_records = db_records.filter(DBPCMSettings.cavity_area == cavity_area)
-                                # db_records = db_records.filter(
-                                #     DBConformerPropRecord.pcm_settings_id.is_(None)
-                                # )
+                             
                         elif implicit_solvent == 'DDX':
-                                # db_records.join(DBESPSettings, DBConformerPropRecord.ddx_settings)
+                                db_records.join(DBDDXSettings, DBConformerPropRecord.ddx_settings)
+                                print('filtering ddx')
                                 db_records = db_records.filter(DBConformerPropRecord.ddx_settings_id.isnot(None))  
+                                db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.ddx_settings))
+                                # db_records = db_records.filter(DBConformerPropRecord.pcm_settings_id.is_(None))  
                                 if solvent_type is not None:
                                     db_records = db_records.filter(DBDDXSettings.solvent == solvent_type)
                                 if solvent_epsilon is not None:
@@ -598,10 +631,11 @@ class MoleculePropStore(MoleculeESPStore):
                             #     db_records = db_records.filter(
                             #         DBConformerPropRecord.ddx_settings_id.is_(None)
                             #     )
+                            
                            
                 db_records = db_records.all()
-
                 records = self._db_records_to_model(db_records)
+
 
                 if basis:
                     records = [
