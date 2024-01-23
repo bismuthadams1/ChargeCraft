@@ -597,7 +597,7 @@ class MoleculePropStore:
                         if implicit_solvent == 'PCM':
                                 db_records = db_records.join(DBPCMSettings, DBConformerPropRecord.pcm_settings) 
                                 db_records = db_records.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))  
-                                db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.pcm_settings_id))
+                                db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.pcm_settings))
                                 # db_records = db_records.filter(DBConformerPropRecord.ddx_settings_id.is_(None))  
                                 # db_records.join(DBPCMSettings,DBConformerPropRecord.pcm_settings)
                                 if solver is not None:
