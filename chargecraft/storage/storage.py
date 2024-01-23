@@ -511,9 +511,9 @@ class MoleculePropStore:
                                                         radii_scaling = radii_scaling,
                                                         cavity_area = cavity_area  
                                                         )
-
-        #make the charge array JSON serializable
-        # existing_partial_charges[charge_model] = charges.magnitude.tolist()
+        
+        if len(existing_partial_charges) > 1:
+             raise ValueError("More than 1 records retrieved, provide more specific filter options") 
 
         if isinstance(charges, np.ndarray):
          existing_partial_charges[charge_model] = charges.tolist()
@@ -604,17 +604,29 @@ class MoleculePropStore:
                 DBConformerPropRecord.coordinates == conformer
             )
 
-            if basis is not None:
-                conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.basis == basis)
+            # if basis is not None:
+            #     conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.basis == basis)
 
-            if method is not None:
-                conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.method == method)
+            # if method is not None:
+            #     conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.method == method)
 
-            if implicit_solvent is not None:
-                if implicit_solvent:
-                    conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))
-                else:
-                    conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.is_(None))
+            if basis is not None or method is not None:
+                conformer_query = conformer_query.join(
+                    DBESPSettings, DBConformerPropRecord.esp_settings
+                )
+                conformer_query = conformer_query.options(contains_eager(DBConformerPropRecord.esp_settings))
+
+
+                if basis is not None:
+                    conformer_query = conformer_query.filter(DBESPSettings.basis == basis)
+                if method is not None:
+                    conformer_query = conformer_query.filter(DBESPSettings.method == method)
+
+            # if implicit_solvent is not None:
+            #     if implicit_solvent:
+            #         conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))
+            #     else:
+            #         conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.is_(None))
             
 
             if implicit_solvent is not None:
@@ -622,7 +634,7 @@ class MoleculePropStore:
                                 conformer_query = conformer_query.join(DBPCMSettings, DBConformerPropRecord.pcm_settings) 
                                 conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.isnot(None)) 
                                 #This is included to make sure ONLY the parent classes that match the child classes are included in the outputs
-                                conformer_query = conformer_query.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.pcm_settings))
+                                conformer_query = conformer_query.options(contains_eager(DBConformerPropRecord.pcm_settings))
                                 if solver is not None:
                                     conformer_query = conformer_query.filter(DBPCMSettings.solver == pcm_solver)
                                 if solvent_type is not None:
@@ -639,7 +651,7 @@ class MoleculePropStore:
                         elif implicit_solvent == 'DDX':
                                 conformer_query.join(DBDDXSettings, DBConformerPropRecord.ddx_settings)
                                 conformer_query = conformer_query.filter(DBConformerPropRecord.ddx_settings_id.isnot(None))  
-                                conformer_query = conformer_query.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.ddx_settings))
+                                conformer_query = conformer_query.options(contains_eager(DBConformerPropRecord.ddx_settings))
                                 if solvent_type is not None:
                                     conformer_query = conformer_query.filter(DBDDXSettings.solvent == solvent_type)
                                 if solvent_epsilon is not None:
@@ -649,6 +661,7 @@ class MoleculePropStore:
                                 if ddx_model is not None:
                                     conformer_query = conformer_query.filter(DBDDXSettings.radii_set == radii_set)
 
+            
             conformer_results = conformer_query.first()
      
             if conformer_results:
