@@ -10,7 +10,7 @@ from chargecraft.storage.storage import MoleculePropStore
 from openff.toolkit.topology import Molecule
 from openff.units import unit
 
-prop_store = MoleculePropStore(database_path="/Users/localadmin/Documents/projects/ChargeCraft/properties_storeNew.db")
+prop_store = MoleculePropStore(database_path="/Users/localadmin/Documents/projects/workshops/workshop1/properties_store.db")
 vs = VirtualSites()
 
 for smiles in prop_store.list():
@@ -59,7 +59,7 @@ for smiles in prop_store.list():
             prop_store.store_partial(
                 smiles=mol_prop.tagged_smiles,
                 conformer=mol_prop.conformer,
-                charges=charges * unit.elementary_charge,
+                charges=charges ,
                 charge_model="qubekit-charges"
             )
             if qubekit_ligand.extra_sites.n_sites > 0:
@@ -67,7 +67,7 @@ for smiles in prop_store.list():
                 prop_store.store_partial(
                     smiles=mol_prop.tagged_smiles,
                     conformer=mol_prop.conformer,
-                    charges=coords * unit.angstrom,
+                    charges=coords,
                     charge_model="qubekit-coords-Ang"
                 )
         else:
@@ -75,7 +75,7 @@ for smiles in prop_store.list():
             prop_store.store_partial(
                 smiles=mol_prop.tagged_smiles,
                 conformer=mol_prop.conformer,
-                charges=mbis_charges.flatten() * unit.elementary_charge,
+                charges=mbis_charges.flatten(),
                 charge_model="qubekit-charges"
             )
 
