@@ -511,9 +511,10 @@ class MoleculePropStore:
                                                         radii_scaling = radii_scaling,
                                                         cavity_area = cavity_area  
                                                         )
-        
-        if len(existing_partial_charges) > 1:
-             raise ValueError("More than 1 records retrieved, provide more specific filter options") 
+        #TODO need to find a way of ensuring that only one partial charge result is returned      
+        # print(len(existing_partial_charges))
+        # if len(existing_partial_charges) > 1:
+        #      raise ValueError("More than 1 records retrieved, provide more specific filter options") 
 
         if isinstance(charges, np.ndarray):
          existing_partial_charges[charge_model] = charges.tolist()
@@ -661,7 +662,7 @@ class MoleculePropStore:
                                 if ddx_model is not None:
                                     conformer_query = conformer_query.filter(DBDDXSettings.radii_set == radii_set)
 
-            
+            #TODO need a better way than brute forcing a single result returning 
             conformer_results = conformer_query.first()
      
             if conformer_results:
@@ -703,7 +704,7 @@ class MoleculePropStore:
                         db_records = db_records.join(
                             DBESPSettings, DBConformerPropRecord.esp_settings
                         )
-                        db_records = db_records.options(contains_eager(DBConformerPropRecord.esp_settings))
+                        db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.esp_settings))
 
 
                         if basis is not None:
