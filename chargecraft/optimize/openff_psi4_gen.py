@@ -284,8 +284,7 @@ class Psi4Generate:
                         psi4.set_options({"ddx": "true", #supply a solvent here to see if epsilon then gets picked up
                         "DDX_SOLVENT_EPSILON": settings.ddx_settings.epsilon,
                         "DDX_RADII_SET": settings.ddx_settings.radii_set,
-                        "DDX_MODEL": settings.ddx_settings.ddx_model,
-                        "DDX_SOLVENT":"water"})
+                        "DDX_MODEL": settings.ddx_settings.ddx_model})
                     else:
                         print('ddx solvent option')
                         psi4.set_options({"ddx": "true",
