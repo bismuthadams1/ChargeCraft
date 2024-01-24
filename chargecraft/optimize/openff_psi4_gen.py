@@ -262,6 +262,7 @@ class Psi4Generate:
             if enable_solvent:
                 print('setting solvent...')
                 if settings.pcm_settings is not None and settings.pcm_settings.solver is not None:
+                            psi4.set_options({"pcm":True})
                             psi4.set_options({ "pcm__input":  f"""
                                             Units = Angstrom
                                             Medium {{

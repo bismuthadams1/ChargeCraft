@@ -32,6 +32,7 @@ def main():
         print(f'number of cores is {ESP_gen.ncores}')
         print(f'memory is {ESP_gen.memory}')
         ESP_gen.run_props()
+        
 
 if __name__ == "__main__":
     main()
