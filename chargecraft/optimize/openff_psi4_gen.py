@@ -341,5 +341,5 @@ class Psi4Generate:
 
                 return final_coordinates, grid, esp, electric_field, variables_dictionary, E
             except Exception as e:
-                return Psi4Error
+                    return Psi4Error
 

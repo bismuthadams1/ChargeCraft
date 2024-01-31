@@ -242,6 +242,8 @@ class PropGenerator(ESPGenerator):
             qc_mol_opt = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
             #QC geometries a given as bohr in the qcelement .geometry attribute, conversion to angstrom is handled in the GridGenerator.generate() method. 
             grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))
+            
+            #TODO better error handling https://psicode.org/psi4manual/master/api/psi4.driver.optimize.html
             try:
                  conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
             except Exception as E:
