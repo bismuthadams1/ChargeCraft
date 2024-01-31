@@ -22,7 +22,8 @@ from chargecraft.storage.db import (
     DBSoftwareProvenance,
     DBConformerPropRecord,
     DBESPSettings,
-    DBDDXSettings
+    DBDDXSettings,
+    _float_to_db_int
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from collections import defaultdict
@@ -605,12 +606,6 @@ class MoleculePropStore:
                 DBConformerPropRecord.coordinates == conformer
             )
 
-            # if basis is not None:
-            #     conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.basis == basis)
-
-            # if method is not None:
-            #     conformer_query = conformer_query.join(DBESPSettings).filter(DBESPSettings.method == method)
-
             if basis is not None or method is not None:
                 conformer_query = conformer_query.join(
                     DBESPSettings, DBConformerPropRecord.esp_settings
@@ -622,13 +617,6 @@ class MoleculePropStore:
                     conformer_query = conformer_query.filter(DBESPSettings.basis == basis)
                 if method is not None:
                     conformer_query = conformer_query.filter(DBESPSettings.method == method)
-
-            # if implicit_solvent is not None:
-            #     if implicit_solvent:
-            #         conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.isnot(None))
-            #     else:
-            #         conformer_query = conformer_query.filter(DBConformerPropRecord.pcm_settings_id.is_(None))
-            
 
             if implicit_solvent is not None:
                         if implicit_solvent == 'PCM':
@@ -647,7 +635,8 @@ class MoleculePropStore:
                                 if radii_scaling is not None:
                                     conformer_query = conformer_query.filter(DBPCMSettings.radii_scaling == radii_scaling)
                                 if cavity_area is not None:
-                                    conformer_query = conformer_query.filter(DBPCMSettings.cavity_area == cavity_area)
+                                    db_cavity_area = _float_to_db_int(cavity_area)
+                                    conformer_query = conformer_query.filter(DBPCMSettings.cavity_area == db_cavity_area)
                              
                         elif implicit_solvent == 'DDX':
                                 conformer_query.join(DBDDXSettings, DBConformerPropRecord.ddx_settings)
@@ -656,7 +645,8 @@ class MoleculePropStore:
                                 if solvent_type is not None:
                                     conformer_query = conformer_query.filter(DBDDXSettings.solvent == solvent_type)
                                 if solvent_epsilon is not None:
-                                    conformer_query = conformer_query.filter(DBDDXSettings.epsilon == solvent_epsilon)
+                                    db_epsilon_value = _float_to_db_int(solvent_epsilon)
+                                    conformer_query = conformer_query.filter(DBDDXSettings.epsilon == db_epsilon_value)
                                 if radii_set is not None:
                                     conformer_query = conformer_query.filter(DBDDXSettings.radii_set == radii_set)
                                 if ddx_model is not None:
@@ -714,7 +704,7 @@ class MoleculePropStore:
 
                     if implicit_solvent is not None:
                         if implicit_solvent == 'PCM':
-                                db_records = db_records.join(DBPCMSettings, DBConformerPropRecord.pcm_settings) 
+                                db_records = db_records.join(DBPCMSettings, DBConformerPropRecord.pcm_settings_id == DBPCMSettings.id ) 
                                 db_records = db_records.filter(DBConformerPropRecord.pcm_settings_id.isnot(None)) 
                                 #This is included to make sure ONLY the parent classes that match the child classes are included in the outputs
                                 db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.pcm_settings))
@@ -729,35 +719,36 @@ class MoleculePropStore:
                                 if radii_scaling is not None:
                                     db_records = db_records.filter(DBPCMSettings.radii_scaling == radii_scaling)
                                 if cavity_area is not None:
-                                    db_records = db_records.filter(DBPCMSettings.cavity_area == cavity_area)
+                                    db_cavity_area = _float_to_db_int(cavity_area)
+                                    db_records = db_records.filter(DBPCMSettings.cavity_area == db_cavity_area)
                              
                         elif implicit_solvent == 'DDX':
-                                db_records.join(DBDDXSettings, DBConformerPropRecord.ddx_settings)
+                                db_records = db_records.join(DBDDXSettings, DBConformerPropRecord.ddx_settings_id == DBDDXSettings.id )
                                 db_records = db_records.filter(DBConformerPropRecord.ddx_settings_id.isnot(None))  
-                                db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.ddx_settings))
+                                # db_records = db_records.options(contains_eager(DBMoleculePropRecord.conformers).contains_eager(DBConformerPropRecord.ddx_settings))
                                 if solvent_type is not None:
                                     db_records = db_records.filter(DBDDXSettings.solvent == solvent_type)
                                 if solvent_epsilon is not None:
-                                    db_records = db_records.filter(DBDDXSettings.epsilon == solvent_epsilon)
+                                    db_epsilon_value = _float_to_db_int(solvent_epsilon)
+                                    db_records = db_records.filter(DBDDXSettings.epsilon == db_epsilon_value)
                                 if radii_set is not None:
                                     db_records = db_records.filter(DBDDXSettings.radii_set == radii_set)
                                 if ddx_model is not None:
                                     db_records = db_records.filter(DBDDXSettings.radii_set == radii_set)
-                      
                             
-                           
+                print(db_records)
                 db_records = db_records.all()
                 records = self._db_records_to_model(db_records)
 
 
-                if basis:
-                    records = [
-                        record for record in records if record.esp_settings.basis == basis
-                    ]
-                if method:
-                    records = [
-                        record for record in records if record.esp_settings.method == method
-                    ]
+                # if basis:
+                #     records = [
+                #         record for record in records if record.esp_settings.basis == basis
+                #     ]
+                # if method:
+                #     records = [
+                #         record for record in records if record.esp_settings.method == method
+                #     ]
 
                 return records                  
 

@@ -11,6 +11,7 @@ from sqlalchemy import (
     PickleType,
     String,
     UniqueConstraint,
+    Float,
 )
 from sqlalchemy.orm import Query, Session, relationship, declarative_base
 
@@ -263,7 +264,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
     @classmethod
     def _query(cls, db: Session, instance: DDXSettings) -> Query:
         epsilon =  _float_to_db_int(instance.epsilon) if instance.epsilon is not None else None
-
+        # print(f"epsilon is {epsilon}")
         return (
             db.query(DBDDXSettings)
             .filter(DBDDXSettings.ddx_model == instance.ddx_model)
@@ -274,6 +275,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _instance_to_db(cls, instance: DDXSettings) -> "DBDDXSettings":
+        # print(_float_to_db_int(instance.epsilon) if instance.epsilon is not None else None)
         return DBDDXSettings(
             ddx_model=instance.ddx_model,
             solvent=instance.solvent,
@@ -283,13 +285,14 @@ class DBDDXSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def db_to_instance(cls, db_instance: "DBDDXSettings") -> DDXSettings:
+        # print(_db_int_to_float(db_instance.epsilon) if db_instance.epsilon is not None else None)
         # noinspection PyTypeChecker
         return DDXSettings(
             ddx_model=db_instance.ddx_model,
             solvent=db_instance.solvent,
             epsilon=_db_int_to_float(db_instance.epsilon) if db_instance.epsilon is not None else None,
             radii_set=db_instance.radii_set
-        )   
+        )
 
 
 class DBESPSettings(_UniqueMixin, DBBase):
