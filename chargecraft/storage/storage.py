@@ -736,19 +736,8 @@ class MoleculePropStore:
                                 if ddx_model is not None:
                                     db_records = db_records.filter(DBDDXSettings.radii_set == radii_set)
                             
-                print(db_records)
                 db_records = db_records.all()
                 records = self._db_records_to_model(db_records)
-
-
-                # if basis:
-                #     records = [
-                #         record for record in records if record.esp_settings.basis == basis
-                #     ]
-                # if method:
-                #     records = [
-                #         record for record in records if record.esp_settings.method == method
-                #     ]
 
                 return records                  
 

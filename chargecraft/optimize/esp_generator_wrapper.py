@@ -234,6 +234,7 @@ class PropGenerator(ESPGenerator):
             #run a ff optimize for each conformer to make sure the starting structure is sensible
             xtb_opt_mol = self._xtb_ff_opt(qc_mol)
             #hf QM optimisation           
+            #TODO bypass optimisation step if HF geom supplied
             hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
             #print out optimised conformer
             hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
