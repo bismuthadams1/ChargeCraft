@@ -249,7 +249,9 @@ class Psi4Generate:
             molecule_psi4 = psi4.geometry(conformer_Ang_string.strip())
             print(molecule_psi4)
             molecule_psi4.set_units(GeometryUnits.Angstrom)
-
+            
+            #Reset options between runs
+            psi4.core.clean_options()
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
@@ -294,7 +296,6 @@ class Psi4Generate:
                         "DDX_MODEL": settings.ddx_settings.ddx_model})
                           
 
-            
             molecule_psi4.set_molecular_charge(formal_charge)
             molecule_psi4.set_multiplicity(spin_multiplicity)
             #Currently QM settings hard coded in, can get from ESPSettings object.
