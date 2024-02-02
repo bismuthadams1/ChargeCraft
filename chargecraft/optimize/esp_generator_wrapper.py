@@ -31,9 +31,33 @@ class ESPGenerator:
               ncores: int | None = None,
               memory: int | None = None
               ) -> None:
-        self.conformers = conformers
+        """"Init
+
+        Parameters
+        ---------
+        molecule
+            openff.molecule in which to generate the properties on
+
+        conformers 
+            unit.Quantity list of conformers generated for the molecule
+
+        esp_settings
+            ESPSettings object in which provides the level of theory and solvent settings
+
+        ncores
+            Sets the number of cores. QCArchive usually handles this internally but running locally
+            sometimes requires this to be set.
+        
+        memory
+            Sets the memory of a calculation. QCArchive usually handles this internally but running locally
+            sometimes requires this to be set.
+        
+        Returns
+        -------
+
+        """
         self.molecule = molecule
-        #self.rd_molecule = self.molecule.to_rdkit()
+        self.conformers = conformers
         self.esp_settings = esp_settings
         self.grid_settings = grid_settings
         self.qc_data_store = MoleculeESPStore()
@@ -145,7 +169,7 @@ class ESPGenerator:
                       }
                     
         )
-        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory, "ncores": self.ncores})
+        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory, "ncores": self.ncores}, raise_error=True)
         print(opt)
         return opt.final_molecule
 
@@ -163,11 +187,32 @@ class ESPGenerator:
             The optimised qcelemental molecule
         """
         hf_model = Model(method=self.esp_settings.method, basis=self.esp_settings.basis)
-        # do want anything here like density fitting?
+        #TODO do want anything here like density fitting?
         keywords = {}
         return self._qcengine_opt(
             qc_mol=qc_mol, model=hf_model, program="psi4", spec_keywords=keywords
         )
+
+    def _hf_opt(self, qc_mol: QCMolecule) -> QCMolecule:
+        """
+        Run an geometry optimivsation using PSI4 and geometric.
+
+        Parameters
+        ----------
+        qc_mol:
+            The qcelemental version of the molecule to be optimised.
+
+        Returns
+        -------
+            The optimised qcelemental molecule
+        """
+        hf_model = Model(method='HF', basis="6-311G*")
+        #TODO do want anything here like density fitting?
+        keywords = {}
+        return self._qcengine_opt(
+            qc_mol=qc_mol, model=hf_model, program="psi4", spec_keywords=keywords
+        )
+
 
 
     def _generate_grid(self, 
@@ -200,8 +245,44 @@ class PropGenerator(ESPGenerator):
                  grid_settings: "GridSettingsType",
                  ncores: int | None = None,
                  memory: int | None = None,
-                 prop_data_store = MoleculePropStore()
+                 prop_data_store = MoleculePropStore(),
+                 optimise_in_method: bool = False,
+                 optimise_with_ff: bool = True
                  ) -> None:
+        """"Init
+
+        Parameters
+        ---------
+        molecule
+            openff.molecule in which to generate the properties on
+
+        conformers 
+            unit.Quantity list of conformers generated for the molecule
+
+        esp_settings
+            ESPSettings object in which provides the level of theory and solvent settings
+
+        ncores
+            Sets the number of cores. QCArchive usually handles this internally but running locally
+            sometimes requires this to be set.
+        
+        memory
+            Sets the memory of a calculation. QCArchive usually handles this internally but running locally
+            sometimes requires this to be set.
+
+        prop_data_store 
+            name and location of the database, if one does not exist it is created
+        
+        optimise_in_method
+            optimise with the supplied method, this can be expensive if using dft functionals or high-levels of theory.
+            Default with HF.
+
+        optimise_with_ff
+            if a QM geometry is supplied, it may not be desirable to reoptimise with a forcefield. 
+        Returns
+        -------
+
+        """
         super().__init__(
                    molecule,
                    conformers,
@@ -210,6 +291,8 @@ class PropGenerator(ESPGenerator):
                    ncores,
                    memory)
         self.prop_data_store = prop_data_store
+        self.optimise_in_method = optimise_in_method
+        self.optimise_with_ff = optimise_with_ff
 
         
     
@@ -231,11 +314,22 @@ class PropGenerator(ESPGenerator):
             # #The default dynamic level is 1, we've made it higher to
             dynamic_level = 5
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
+
             #run a ff optimize for each conformer to make sure the starting structure is sensible
-            xtb_opt_mol = self._xtb_ff_opt(qc_mol)
+            if self.optimise_with_ff:
+                xtb_opt_mol = self._xtb_ff_opt(qc_mol=qc_mol)
+                if self.optimise_in_method:
+                    hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+                else:
+                    hf_opt_mol = self._hf_opt(qc_mol=xtb_opt_mol)
+            else:
+                if self.optimise_in_method:
+                    hf_opt_mol = self._psi4_opt(qc_mol=qc_mol)
+                else:
+                    hf_opt_mol = self._hf_opt(qc_mol=qc_mol)
+
             #hf QM optimisation           
             #TODO bypass optimisation step if HF geom supplied
-            hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
             #print out optimised conformer
             hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
             conformer_list.append(hf_opt_mol_conf.conformers[0].to(unit.angstrom))
