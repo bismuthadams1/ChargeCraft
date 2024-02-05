@@ -336,6 +336,8 @@ class Psi4Generate:
                 #different indexes for dipole if dft vs hf method
                 variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius
                 variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius**2
+                variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
+                variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
             
                 #qcelemental.geometry is outputted in bohr, convert to  angstrom
                 final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
