@@ -124,6 +124,14 @@ class MoleculePropRecord(BaseModel):
         description= "partial charges in JSON"
         )
 
+        alpha_density: Array[float] = Field(...,
+        description= "Alpha density matrix"                                    
+        )
+
+        beta_density: Array[float] = Field(...,
+        description= "Beta density matrix"
+        )
+
         @property
         def conformer_quantity(self) -> unit.Quantity:
             return self.conformer * unit.angstrom
@@ -229,6 +237,8 @@ class MoleculePropRecord(BaseModel):
             mbis_dipole = variables_dictionary["MBIS DIPOLE"]
             mbis_quadropole = variables_dictionary["MBIS QUADRUPOLE"]
             mbis_octopole= variables_dictionary["MBIS OCTOPOLE"]
+            alpha_density = variables_dictionary["ALPHA_DENSITY"]
+            beta_density = variables_dictionary["BETA_DENSITY"]
 
             tagged_smiles = molecule.to_smiles(
                 isomeric=True, explicit_hydrogens=True, mapped=True
@@ -252,6 +262,8 @@ class MoleculePropRecord(BaseModel):
                 mbis_quadropole= mbis_quadropole,
                 mbis_octopole= mbis_octopole,
                 energy = energy,
+                alpha_density = alpha_density,
+                beta_density= beta_density,
                 charge_model_charges = None
             )
 
@@ -334,6 +346,8 @@ class MoleculePropStore:
                 mbis_quadropole= db_conformer.mbis_quadropole,
                 mbis_octopole= db_conformer.mbis_octopole,
                 energy = db_conformer.energy,
+                alpha_density = db_conformer.alpha_density,
+                beta_density= db_conformer.beta_density,
                 charge_model_charges = None
             )
             for db_record in db_records
@@ -395,6 +409,8 @@ class MoleculePropStore:
                 mbis_quadropole= record.mbis_quadropole,
                 mbis_octopole= record.mbis_octopole,
                 energy = record.energy,
+                alpha_density = record.alpha_density,
+                beta_density= record.beta_density,
                 charge_model_charges = None
             )
             for record in records
