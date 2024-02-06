@@ -247,7 +247,8 @@ class PropGenerator(ESPGenerator):
                  memory: int | None = None,
                  prop_data_store = MoleculePropStore(),
                  optimise_in_method: bool = False,
-                 optimise_with_ff: bool = True
+                 optimise_with_ff: bool = True,
+                 geom_opt: bool = True
                  ) -> None:
         """"Init
 
@@ -279,6 +280,9 @@ class PropGenerator(ESPGenerator):
 
         optimise_with_ff
             if a QM geometry is supplied, it may not be desirable to reoptimise with a forcefield. 
+
+        geom_opt
+            Optimise the geometry otherwise perform a single-point properties calculation on the supplied geometry  
         Returns
         -------
 
@@ -293,6 +297,7 @@ class PropGenerator(ESPGenerator):
         self.prop_data_store = prop_data_store
         self.optimise_in_method = optimise_in_method
         self.optimise_with_ff = optimise_with_ff
+        self.geom_opt = geom_opt
 
         
     
@@ -316,21 +321,21 @@ class PropGenerator(ESPGenerator):
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
 
             #run a ff optimize for each conformer to make sure the starting structure is sensible
-            if self.optimise_with_ff:
-                xtb_opt_mol = self._xtb_ff_opt(qc_mol=qc_mol)
-                if self.optimise_in_method:
-                    hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+            if self.geom_opt:
+                if self.optimise_with_ff:
+                    xtb_opt_mol = self._xtb_ff_opt(qc_mol=qc_mol)
+                    if self.optimise_in_method:
+                        hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
+                    else:
+                        hf_opt_mol = self._hf_opt(qc_mol=xtb_opt_mol)
                 else:
-                    hf_opt_mol = self._hf_opt(qc_mol=xtb_opt_mol)
+                    if self.optimise_in_method:
+                        hf_opt_mol = self._psi4_opt(qc_mol=qc_mol)
+                    else:
+                        hf_opt_mol = self._hf_opt(qc_mol=qc_mol)
             else:
-                if self.optimise_in_method:
-                    hf_opt_mol = self._psi4_opt(qc_mol=qc_mol)
-                else:
-                    hf_opt_mol = self._hf_opt(qc_mol=qc_mol)
-
-            #hf QM optimisation           
-            #TODO bypass optimisation step if HF geom supplied
-            #print out optimised conformer
+                hf_opt_mol = qc_mol  
+            
             hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
             conformer_list.append(hf_opt_mol_conf.conformers[0].to(unit.angstrom))
             #ensure molecule is not orientated
