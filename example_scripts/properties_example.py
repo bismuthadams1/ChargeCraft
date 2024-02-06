@@ -10,7 +10,7 @@ from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
 def main():
     
     #Read the .smi input and add to list
-    smiles = ReadInput.read_smiles('test_files.smi')
+    smiles = ['OCC(O)CO', '[H]C#CC([H])([H])[H]', '[H]C1(C(N1[H])([H])[H])[H]'] #ReadInput.read_smiles('test_files.smi')
 
     # Define the grid that the electrostatic properties will be trained on and the
     # level of theory to compute the properties at.
@@ -24,10 +24,10 @@ def main():
     for mol in smiles:
         molecule = smiles_to_molecule(mol)
         #Generate the conformers
-        conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=10)
+        conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=3)
         ESP_gen = PropGenerator(molecule = molecule, 
                                 conformers = conformer_list, 
-                                esp_settings = esp_settings, grid_settings = grid_settings, prop_data_store = MoleculePropStore(database_path='properties_store_example.db'))
+                                esp_settings = esp_settings, grid_settings = grid_settings, prop_data_store = MoleculePropStore(database_path='properties_store_density.db'))
         ESP_gen.memory = 2e+9 #2gb
         print(f'number of cores is {ESP_gen.ncores}')
         print(f'memory is {ESP_gen.memory}')

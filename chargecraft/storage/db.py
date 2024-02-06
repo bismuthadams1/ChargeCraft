@@ -371,6 +371,9 @@ class DBConformerPropRecord(DBBase):
     ddx_settings = relationship("DBDDXSettings", uselist = False)
     ddx_settings_id = Column(Integer, ForeignKey("ddx_settings.id"), nullable = True)
 
+    alpha_density_matrix = Column(PickleType, nullable=False)
+    beta_density_matrix = Column(PickleType, nullable=False)
+
 
 
 class DBMoleculePropRecord(DBBase):
