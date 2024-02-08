@@ -15,6 +15,7 @@ from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationInput, QCInputSpecification
 import copy
 import numpy as np
+from chargecraft.globals import GlobalConfig
 
 
 class ESPGenerator:
@@ -72,7 +73,8 @@ class ESPGenerator:
     @ncores.setter
     def ncores(self, value):
         if value is None:
-            self._ncores = qcengine.get_config().ncores
+            # Use GlobalConfig to determine the default
+            self._ncores = GlobalConfig.total_threads()
         else:
             self._ncores = value
     
@@ -83,10 +85,10 @@ class ESPGenerator:
     @memory.setter
     def memory(self, value):
         if value is None:
-            self._memory =  qcengine.get_config().memory# * 0.9
+            # Use GlobalConfig to determine the default
+            self._memory = GlobalConfig.memory()
         else:
             self._memory = value
-
 
     def run_esps(self) -> None:
         """

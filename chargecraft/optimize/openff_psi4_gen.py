@@ -14,7 +14,7 @@ from chargecraft.storage.data_classes import ESPSettings, DDXSettings
 
 
 from openff.recharge.esp.exceptions import Psi4Error
-from chargecraft.utilities.conversion_functions import conf_to_xyz_string
+from chargecraft.globals import GlobalConfig
 
 from openff.toolkit import Molecule
 
@@ -25,6 +25,8 @@ from psi4.core import GeometryUnits
 from psi4.core import Options
 
 CWD = os.getcwd()
+
+
 #TODO remove this class, not needed anymore
 class CustomPsi4ESPGenerator:
     """An class which will compute the electrostatic potential of
@@ -255,8 +257,9 @@ class Psi4Generate:
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
-            
-                # print(f'settings')
+            #Number of threads should be the number of cores * num of threads per core
+            psi4.set_num_threads(GlobalConfig().total_threads())
+            print(f'number of threads is {GlobalConfig().total_threads()}')
             enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
             print(f'settings pcm {settings.pcm_settings}')
             print(f'settings ddx {settings.ddx_settings}')
