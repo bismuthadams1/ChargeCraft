@@ -24,14 +24,17 @@ def main():
     for mol in smiles:
         molecule = smiles_to_molecule(mol)
         #Generate the conformers
-        conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=3)
+        conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=1)
+
         ESP_gen = PropGenerator(molecule = molecule, 
                                 conformers = conformer_list, 
-                                esp_settings = esp_settings, grid_settings = grid_settings, prop_data_store = MoleculePropStore(database_path='properties_store_density.db'))
+                                esp_settings = esp_settings, grid_settings = grid_settings, prop_data_store = MoleculePropStore(database_path='properties_store_density.db'),
+                                geom_opt= False)
         ESP_gen.memory = 2e+9 #2gb
         print(f'number of cores is {ESP_gen.ncores}')
         print(f'memory is {ESP_gen.memory}')
-        ESP_gen.run_props()
+        conformer_list_new  = ESP_gen.run_props()
+        print(conformer_list_new)
         
 
 if __name__ == "__main__":
