@@ -351,6 +351,7 @@ class PropGenerator(ESPGenerator):
             except Exception as E:
                  #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                  print(f'properties failure with: {self.esp_settings.method}/{self.esp_settings.basis} and pcm {self.esp_settings.pcm_settings} and ddx {self.esp_settings.ddx_settings} ')
+                 print(E)
                  continue
             
             record = MoleculePropRecord.from_molecule(
