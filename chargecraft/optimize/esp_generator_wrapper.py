@@ -347,7 +347,7 @@ class PropGenerator(ESPGenerator):
             
             #TODO better error handling https://psicode.org/psi4manual/master/api/psi4.driver.optimize.html
             try:
-                 conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid)
+                 conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid, extra_options= extra_options)
             except Exception as E:
                  #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                  print(f'properties failure with: {self.esp_settings.method}/{self.esp_settings.basis} and pcm {self.esp_settings.pcm_settings} and ddx {self.esp_settings.ddx_settings} ')

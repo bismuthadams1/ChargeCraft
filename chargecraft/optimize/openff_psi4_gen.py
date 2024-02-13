@@ -259,7 +259,9 @@ class Psi4Generate:
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
             #Set additional options
-            psi4.set_options(extra_options)
+            if extra_options:
+                print(f'setting extra options: {extra_options}')
+                psi4.set_options(extra_options)
             #Number of threads should be the number of cores * num of threads per core
             psi4.set_num_threads(GlobalConfig().total_threads())
             psi4.set_memory(GlobalConfig().memory())
