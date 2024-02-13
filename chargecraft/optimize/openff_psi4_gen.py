@@ -227,6 +227,7 @@ class Psi4Generate:
                 settings: ESPSettings ,
                 dynamic_level: int = 1,
                 directory: str = CWD,
+                extra_options: dict[any] | None = None
                 ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict, int]:
         
         with temporary_cd(directory):
@@ -257,8 +258,11 @@ class Psi4Generate:
             #Ultrafine grid
             psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
                               "DFT_RADIAL_POINTS":"99"})
+            #Set additional options
+            psi4.set_options(extra_options)
             #Number of threads should be the number of cores * num of threads per core
             psi4.set_num_threads(GlobalConfig().total_threads())
+            psi4.set_memory(GlobalConfig().memory())
             print(f'number of threads is {GlobalConfig().total_threads()}')
             enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
             print(f'settings pcm {settings.pcm_settings}')
@@ -351,5 +355,6 @@ class Psi4Generate:
                 return final_coordinates, grid, esp, electric_field, variables_dictionary, E
             except Exception as e:
                     print(e)
+                    psi4.core.clean()
                     return Psi4Error
-
+  

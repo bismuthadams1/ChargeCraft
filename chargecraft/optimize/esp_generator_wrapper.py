@@ -17,7 +17,6 @@ import copy
 import numpy as np
 from chargecraft.globals import GlobalConfig
 
-
 class ESPGenerator:
     """"
     Class for Generating ESPs which wraps around the Psi4ESPGenerator class and handles errors.   
@@ -303,7 +302,8 @@ class PropGenerator(ESPGenerator):
 
         
     
-    def run_props(self) -> list[np.array]:
+    def run_props(self,
+                  extra_options: dict[any] | None = None) -> list[np.array]:
         """
         Run psi4 to generate the ESPs and the properties, the function loops through the conformers and handles errors.
         Appends the outputs to the sqlfile.
@@ -367,7 +367,8 @@ class PropGenerator(ESPGenerator):
                                 conformer: "QCMolecule", 
                                 dynamic_level: int, 
                                 grid: unit.Quantity,
-                                error_level: int = 0) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
+                                error_level: int = 0,
+                                extra_options: dict[str] | None = None) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
         """
         Wrapper around the Psi4ESP generator which slowly increases the dynamic level if the calculation has problems
 
@@ -392,7 +393,8 @@ class PropGenerator(ESPGenerator):
                             conformer = conformer,
                             grid = grid,
                             settings = self.esp_settings,
-                            dynamic_level = dynamic_level
+                            dynamic_level = dynamic_level,
+                            extra_options = extra_options
                     )
             return xyz, grid, esp, electric_field, variables_dictionary, E
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
