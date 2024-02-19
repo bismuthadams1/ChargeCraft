@@ -303,7 +303,7 @@ class PropGenerator(ESPGenerator):
         self.optimise_in_method = optimise_in_method
         self.optimise_with_ff = optimise_with_ff
         self.geom_opt = geom_opt
-
+        self.check_if_method_there = check_if_method_there
         
     
     def run_props(self,
@@ -433,6 +433,10 @@ class PropGenerator(ESPGenerator):
             True if the method+basis+solvent combination in the database
         
         """
+
+        #Skip this function if we don't want to check if method there
+        if self.check_if_method_there:
+            return False
         
         #TODO add even more detail to solvent choices like radii
         #TODO add check for conformer prescence too
