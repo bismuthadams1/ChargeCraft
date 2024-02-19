@@ -351,6 +351,7 @@ class PropGenerator(ESPGenerator):
             grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))
             
             #TODO better error handling https://psicode.org/psi4manual/master/api/psi4.driver.optimize.html
+<<<<<<< HEAD
             try:
                 if not self.check_if_there():
                     conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid, extra_options= extra_options)
@@ -359,6 +360,14 @@ class PropGenerator(ESPGenerator):
             except ValueError:
                 print('Method already in db')
                 continue
+=======
+            try: 
+                if not self.check_if_there():
+                    conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid, extra_options= extra_options)
+                else:
+                    print('Values already present in database')
+                    continue
+>>>>>>> bfd72657d7bf3f106442b2460df123ee789d9148
             except Exception as E:
                 #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                 print(f'properties failure with: {self.esp_settings.method}/{self.esp_settings.basis} and pcm {self.esp_settings.pcm_settings} and ddx {self.esp_settings.ddx_settings} ')
@@ -397,7 +406,11 @@ class PropGenerator(ESPGenerator):
             Conformer, grid, esp, and electric field OR a Psi4Error
             
         """
+<<<<<<< HEAD
             # run through different error options, slowly escalate.
+=======
+        # run through different error options, slowly escalate.
+>>>>>>> bfd72657d7bf3f106442b2460df123ee789d9148
         try:
             xyz, grid, esp, electric_field, variables_dictionary, E = Psi4Generate.get_properties(
                             molecule = self.molecule,
@@ -422,7 +435,10 @@ class PropGenerator(ESPGenerator):
             #     return xyz, grid, esp, electric_field, variables_dictionary, E
             else:
                 raise Psi4Error 
+<<<<<<< HEAD
      
+=======
+>>>>>>> bfd72657d7bf3f106442b2460df123ee789d9148
 
     def check_if_there(self) -> bool:
         """
@@ -444,7 +460,8 @@ class PropGenerator(ESPGenerator):
         
         #TODO add even more detail to solvent choices like radii
         #TODO add check for conformer prescence too
-        prop_store = MoleculePropStore(database_path=self.database_path)
+        prop_store = self.prop_data_store
+        print(prop_store.list())
         # Make a set of all the methods in the database
         method_set = set((item.esp_settings.method,
                         item.esp_settings.basis,
@@ -468,7 +485,9 @@ class PropGenerator(ESPGenerator):
         if solvent_settings == 'PCM':
             if self.esp_settings.pcm_settings.solvent:
                 solvent_value = self.esp_settings.pcm_settings.solvent 
-
+        else:
+            solvent_value = None
+        
         check_for_exact_match = any(
             self.esp_settings.method.lower() == method_item[0].lower() and
             self.esp_settings.basis.lower() == method_item[1].lower() and  # Basis set comparison in case-insensitive manner
