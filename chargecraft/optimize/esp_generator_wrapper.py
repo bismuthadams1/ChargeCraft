@@ -249,7 +249,8 @@ class PropGenerator(ESPGenerator):
                  prop_data_store = MoleculePropStore(),
                  optimise_in_method: bool = False,
                  optimise_with_ff: bool = True,
-                 geom_opt: bool = True
+                 geom_opt: bool = True,
+                 check_if_method_there: bool = True
                  ) -> None:
         """"Init
 
@@ -284,6 +285,9 @@ class PropGenerator(ESPGenerator):
 
         geom_opt
             Optimise the geometry otherwise perform a single-point properties calculation on the supplied geometry  
+        
+        check_if_method_there
+            Run check if method + basis + solvent types already in the database, if so, skip this calculation
         Returns
         -------
 
@@ -368,7 +372,7 @@ class PropGenerator(ESPGenerator):
                                 dynamic_level: int, 
                                 grid: unit.Quantity,
                                 error_level: int = 0,
-                                extra_options: dict[str] | None = None) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error:
+                                extra_options: dict[str] | None = None) -> tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity] | Psi4Error | str:
         """
         Wrapper around the Psi4ESP generator which slowly increases the dynamic level if the calculation has problems
 
@@ -386,28 +390,82 @@ class PropGenerator(ESPGenerator):
             Conformer, grid, esp, and electric field OR a Psi4Error
             
         """
-        # run through different error options, slowly escalate.
-        try:
-            xyz, grid, esp, electric_field, variables_dictionary, E = Psi4Generate.get_properties(
-                            molecule = self.molecule,
-                            conformer = conformer,
-                            grid = grid,
-                            settings = self.esp_settings,
-                            dynamic_level = dynamic_level,
-                            extra_options = extra_options
-                    )
-            return xyz, grid, esp, electric_field, variables_dictionary, E
-        #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
-        except Psi4Error:
-            if error_level == 0:
-                error_level += 1
-                dynamic_level += 1
-                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+        if not self.check_if_there():
+            # run through different error options, slowly escalate.
+            try:
+                xyz, grid, esp, electric_field, variables_dictionary, E = Psi4Generate.get_properties(
+                                molecule = self.molecule,
+                                conformer = conformer,
+                                grid = grid,
+                                settings = self.esp_settings,
+                                dynamic_level = dynamic_level,
+                                extra_options = extra_options
+                        )
                 return xyz, grid, esp, electric_field, variables_dictionary, E
-            elif error_level == 1:
-                error_level += 1
-                dynamic_level += 1
-                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-                return xyz, grid, esp, electric_field, variables_dictionary, E
-            else:
-                raise Psi4Error 
+            #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
+            except Psi4Error:
+                if error_level == 0:
+                    error_level += 1
+                    dynamic_level += 1
+                    grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                    return xyz, grid, esp, electric_field, variables_dictionary, E
+                elif error_level == 1:
+                    error_level += 1
+                    dynamic_level += 1
+                    grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                    return xyz, grid, esp, electric_field, variables_dictionary, E
+                else:
+                    raise Psi4Error 
+        else:
+            return 'Values already present in database'
+
+    def check_if_there(self) -> bool:
+        """
+        Function to check if method alrady in database
+
+        Parameters
+        ----------
+        None
+        Returns
+        -------
+        check_for_exact_match: Bool
+            True if the method+basis+solvent combination in the database
+        
+        """
+        
+        #TODO add even more detail to solvent choices like radii
+        #TODO add check for conformer prescence too
+        prop_store = MoleculePropStore(database_path=self.database_path)
+        # Make a set of all the methods in the database
+        method_set = set((item.esp_settings.method,
+                        item.esp_settings.basis,
+                        'DDX' if item.esp_settings.ddx_settings else 'PCM' if item.esp_settings.pcm_settings else None,
+                        None if not item.esp_settings.ddx_settings else
+                        None if not item.esp_settings.ddx_settings.epsilon else
+                        item.esp_settings.ddx_settings.epsilon,
+                        None if not item.esp_settings.ddx_settings else
+                        None if not item.esp_settings.ddx_settings.solvent else
+                        item.esp_settings.ddx_settings.solvent) for item in prop_store.retrieve(smiles=self.molecule.to_smiles()))
+        
+        print(method_set)
+
+        solvent_settings  = 'DDX' if self.esp_settings.ddx_settings is not None else 'PCM' if self.esp_settings.pcm_settings is not None else None
+        
+        if solvent_settings == 'DDX':
+            if self.esp_settings.ddx_settings.epsilon:
+                solvent_value = self.esp_settings.ddx_settings.epsilon
+            if self.esp_settings.ddx_settings.solvent:
+                solvent_value = self.esp_settings.ddx_settings.solvent
+        if solvent_settings == 'PCM':
+            if self.esp_settings.pcm_settings.solvent:
+                solvent_value = self.esp_settings.pcm_settings.solvent 
+
+        check_for_exact_match = any(
+            self.esp_settings.method.lower() == method_item[0].lower() and
+            self.esp_settings.basis.lower() == method_item[1].lower() and  # Basis set comparison in case-insensitive manner
+            (solvent_settings == method_item[2] or (solvent_settings is None and method_item[2] is None)) and
+            (solvent_value == method_item[3] or (solvent_value is None and method_item[3] is None))
+            for method_item in method_set
+        )
+
+        return check_for_exact_match
