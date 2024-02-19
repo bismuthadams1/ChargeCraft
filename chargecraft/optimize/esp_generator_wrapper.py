@@ -343,8 +343,9 @@ class PropGenerator(ESPGenerator):
                 hf_opt_mol = qc_mol  
             
             hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
+            #Supply optimised geometry to list for output
             conformer_list.append(hf_opt_mol_conf.conformers[0].to(unit.angstrom))
-            #ensure molecule is not orientated
+            #ensure molecule is not orientated, use original conformer
             qc_mol_opt = QCMolecule(**hf_opt_mol.dict(exclude={"fix_com", "fix_orientation"}), fix_com=True, fix_orientation=True)
             #QC geometries a given as bohr in the qcelement .geometry attribute, conversion to angstrom is handled in the GridGenerator.generate() method. 
             grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))

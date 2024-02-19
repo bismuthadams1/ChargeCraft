@@ -253,6 +253,7 @@ class Psi4Generate:
             print(molecule_psi4)
             molecule_psi4.set_units(GeometryUnits.Angstrom)
             
+            #TODO set number of threads somewhere
             #Reset options between runs
             psi4.core.clean_options()
             #Ultrafine grid
