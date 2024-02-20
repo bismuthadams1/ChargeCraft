@@ -351,23 +351,12 @@ class PropGenerator(ESPGenerator):
             grid = self._generate_grid((qc_mol_opt.geometry * unit.bohr))
             
             #TODO better error handling https://psicode.org/psi4manual/master/api/psi4.driver.optimize.html
-<<<<<<< HEAD
-            try:
-                if not self.check_if_there():
-                    conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid, extra_options= extra_options)
-                else:
-                    continue
-            except ValueError:
-                print('Method already in db')
-                continue
-=======
             try: 
                 if not self.check_if_there():
                     conformer, grid, esp, electric_field, variables_dictionary, E  = self._prop_generator_wrapper(conformer = qc_mol_opt, dynamic_level = dynamic_level, grid = grid, extra_options= extra_options)
                 else:
                     print('Values already present in database')
                     continue
->>>>>>> bfd72657d7bf3f106442b2460df123ee789d9148
             except Exception as E:
                 #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                 print(f'properties failure with: {self.esp_settings.method}/{self.esp_settings.basis} and pcm {self.esp_settings.pcm_settings} and ddx {self.esp_settings.ddx_settings} ')
@@ -406,11 +395,7 @@ class PropGenerator(ESPGenerator):
             Conformer, grid, esp, and electric field OR a Psi4Error
             
         """
-<<<<<<< HEAD
-            # run through different error options, slowly escalate.
-=======
         # run through different error options, slowly escalate.
->>>>>>> bfd72657d7bf3f106442b2460df123ee789d9148
         try:
             xyz, grid, esp, electric_field, variables_dictionary, E = Psi4Generate.get_properties(
                             molecule = self.molecule,
@@ -422,23 +407,21 @@ class PropGenerator(ESPGenerator):
                     )
             return xyz, grid, esp, electric_field, variables_dictionary, E
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
-        except Psi4Error:
+        except Exception as e:
             if error_level == 0:
                 error_level += 1
                 dynamic_level += 1
-                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+                tricky_convergence = {"SCF__SCF_INITIAL_ACCELERATOR":"NONE",
+                        "SCF__MAXITER":300}
+                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level, extra_options=tricky_convergence)
                 return xyz, grid, esp, electric_field, variables_dictionary, E
-            # elif error_level == 1:
-            #     error_level += 1
-            #     dynamic_level += 1
-            #     grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-            #     return xyz, grid, esp, electric_field, variables_dictionary, E
+            # # elif error_level == 1:
+            # #     error_level += 1
+            # #     dynamic_level += 1
+            # #     grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+            # #     return xyz, grid, esp, electric_field, variables_dictionary, E
             else:
                 raise Psi4Error 
-<<<<<<< HEAD
-     
-=======
->>>>>>> bfd72657d7bf3f106442b2460df123ee789d9148
 
     def check_if_there(self) -> bool:
         """
