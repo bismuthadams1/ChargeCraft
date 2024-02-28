@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 from pydantic import BaseModel, Field
 from contextlib import contextmanager
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 import warnings
 import functools
 import numpy as np
@@ -291,7 +291,7 @@ class MoleculePropStore:
 
             # Enable WAL mode directly after engine creation
             with self._engine.connect() as conn:
-                conn.execute("PRAGMA journal_mode=WAL;")
+                conn.execute(text("PRAGMA journal_mode=WAL;"))
 
             self._session_maker = sessionmaker(
                 autocommit=False, autoflush=False, bind=self._engine
