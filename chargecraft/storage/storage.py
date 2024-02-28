@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 from pydantic import BaseModel, Field
 from contextlib import contextmanager
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 import warnings
 import functools
 import numpy as np
@@ -37,6 +37,11 @@ if TYPE_CHECKING:
 else:
     from openff.recharge.utilities.pydantic import Array, wrapped_array_validator
 
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL;")
+    cursor.close()
 
 class MoleculePropRecord(BaseModel):
         """An extension of the MoleculeESPRecord class to store ESPs, partial charges and quadropoles. 
@@ -289,6 +294,10 @@ class MoleculePropStore:
             self._engine = create_engine(self._database_url, echo=False, connect_args={'timeout': 15})
             DBBase.metadata.create_all(self._engine)
 
+            # Enable WAL mode directly after engine creation
+            with self._engine.connect() as conn:
+                conn.execute("PRAGMA journal_mode=WAL;")
+                
             self._session_maker = sessionmaker(
                 autocommit=False, autoflush=False, bind=self._engine
             )
