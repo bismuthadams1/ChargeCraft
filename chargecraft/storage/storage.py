@@ -37,11 +37,6 @@ if TYPE_CHECKING:
 else:
     from openff.recharge.utilities.pydantic import Array, wrapped_array_validator
 
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL;")
-    cursor.close()
 
 class MoleculePropRecord(BaseModel):
         """An extension of the MoleculeESPRecord class to store ESPs, partial charges and quadropoles. 
@@ -297,7 +292,7 @@ class MoleculePropStore:
             # Enable WAL mode directly after engine creation
             with self._engine.connect() as conn:
                 conn.execute("PRAGMA journal_mode=WAL;")
-                
+
             self._session_maker = sessionmaker(
                 autocommit=False, autoflush=False, bind=self._engine
             )
