@@ -345,7 +345,7 @@ class Psi4Generate:
                 #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
                 #different indexes for dipole if dft vs hf method
                 variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius
-                variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius**2
+                variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
                 variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
             

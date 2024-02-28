@@ -286,7 +286,7 @@ class MoleculePropStore:
             """
             self._database_url = f"sqlite:///{database_path}"
 
-            self._engine = create_engine(self._database_url, echo=False)
+            self._engine = create_engine(self._database_url, echo=False, connect_args={'timeout': 15})
             DBBase.metadata.create_all(self._engine)
 
             self._session_maker = sessionmaker(
