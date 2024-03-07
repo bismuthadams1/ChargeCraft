@@ -1,18 +1,25 @@
 from openff.recharge.esp import ESPSettings as OldESPSettings
-from pydantic import BaseModel, Field
+
 from typing import TYPE_CHECKING, Literal, Optional, Tuple, Union
 from openff.recharge.esp import DFTGridSettings
 from openff.recharge.grids import GridGenerator, GridSettingsType
 
-from pydantic import BaseModel, Field
-
+try:
+ from pydantic import v1 as pydanticv1
+ from pydanticv1 import BaseModel,Field
+except Exception as e:
+ from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
 
     PositiveFloat = float
 else:
-    from pydantic import PositiveFloat
+    try:
+        from pydantic import v1 as pydanticv1
+        from pydantic.v1 import BaseModel, Field, PositiveFloat
+    except Exception as e:
+        from pydantic import BaseModel, Field, PositiveFloat
 
 
 class DDXSettings(BaseModel):
