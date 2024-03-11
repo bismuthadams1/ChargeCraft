@@ -1,6 +1,6 @@
 import chargecraft
 from chargecraft.inputSetup.SmilesInputs import ReadInput
-from chargecraft.optimize.esp_generator_wrapper import ESPGenerator, PropGenerator
+from chargecraft.optimize.esp_generator_wrapper import PropGenerator
 from chargecraft.conformers.conformer_gen import Conformers
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.recharge.grids import LatticeGridSettings

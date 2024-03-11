@@ -9,7 +9,6 @@ from openff.units import unit
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
-from openff.recharge.esp import ESPGenerator
 from chargecraft.storage.data_classes import ESPSettings, DDXSettings
 
 
