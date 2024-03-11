@@ -1,6 +1,11 @@
 
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
-from pydantic import BaseModel, Field
+try:
+ from pydantic import v1 as pydanticv1
+ from pydantic.v1 import BaseModel,Field
+except Exception as e:
+ from pydantic import BaseModel, Field
+
 from contextlib import contextmanager
 from sqlalchemy import create_engine, event, text
 import warnings
