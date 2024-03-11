@@ -310,15 +310,8 @@ class Psi4Generate:
             molecule_psi4.set_multiplicity(spin_multiplicity)
             #Currently QM settings hard coded in, can get from ESPSettings object.
             try:
-                E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
-                                                                "GRID_FIELD",
-                                                                "MULLIKEN_CHARGES", 
-                                                                "LOWDIN_CHARGES", 
-                                                                "DIPOLE", 
-                                                                "QUADRUPOLE", 
-                                                                "MBIS_CHARGES"], 
-                                                                molecule = molecule_psi4,
-                                                                return_wfn = True)
+                E, wfn =  psi4.energy(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
+                psi4.oeprop(wfn,"GRID_ESP","GRID_FIELD","MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE","QUADRUPOLE", "MBIS_CHARGES")
 
                 esp = (
                     numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
@@ -332,7 +325,8 @@ class Psi4Generate:
 
                 #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
                 #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
-                
+                print(wfn.variables())
+
                 variables_dictionary = dict()
                 #psi4 computes charges in a.u., elementary charge
                 variables_dictionary["MULLIKEN_CHARGES"] = wfn.variable("MULLIKEN_CHARGES") * unit.e
@@ -344,8 +338,8 @@ class Psi4Generate:
                 variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
                 #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
                 #different indexes for dipole if dft vs hf method
-                variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method} DIPOLE") * unit.e * unit.bohr_radius
-                variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method} QUADRUPOLE") * unit.e * unit.bohr_radius**2
+                variables_dictionary["DIPOLE"] = wfn.variable("SCF DIPOLE") * unit.e * unit.bohr_radius
+                variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
                 variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
             
