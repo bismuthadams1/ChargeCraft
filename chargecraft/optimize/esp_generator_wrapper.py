@@ -15,6 +15,7 @@ from qcelemental.models.procedures import OptimizationInput, QCInputSpecificatio
 import copy
 import numpy as np
 from chargecraft.globals import GlobalConfig
+from chargecraft.globals import log_memory_usage
 
 class PropGenerator:
     """"
@@ -232,6 +233,8 @@ class PropGenerator:
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
 
             #run a ff optimize for each conformer to make sure the starting structure is sensible
+            print('memory use before geom opt')
+            log_memory_usage()
             if self.geom_opt:
                 if self.optimise_with_ff:
                     xtb_opt_mol = self._xtb_ff_opt(qc_mol=qc_mol)
@@ -246,7 +249,8 @@ class PropGenerator:
                         hf_opt_mol = self._hf_opt(qc_mol=qc_mol)
             else:
                 hf_opt_mol = qc_mol  
-            
+            print('memory use after geom opt')
+            log_memory_usage()
             hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
             #Supply optimised geometry to list for output
             conformer_list.append(hf_opt_mol_conf.conformers[0].to(unit.angstrom))
@@ -313,20 +317,21 @@ class PropGenerator:
             return xyz, grid, esp, electric_field, variables_dictionary, E
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
         except Exception as e:
-            if error_level == 0:
-                error_level += 1
-                dynamic_level += 1
-                tricky_convergence = {"SCF__SCF_INITIAL_ACCELERATOR":"NONE",
-                        "SCF__MAXITER":300}
-                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level, extra_options=tricky_convergence)
-                return xyz, grid, esp, electric_field, variables_dictionary, E
-            # # elif error_level == 1:
-            # #     error_level += 1
-            # #     dynamic_level += 1
-            # #     grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-            # #     return xyz, grid, esp, electric_field, variables_dictionary, E
-            else:
-                raise Psi4Error 
+            print(e)
+            raise Psi4Error 
+        #TODO review if commented code was causeing memory leak
+        #     if error_level == 0:
+        #         error_level += 1
+        #         dynamic_level += 1
+        #         tricky_convergence = {"SCF__SCF_INITIAL_ACCELERATOR":"NONE",
+        #                 "SCF__MAXITER":300}
+        #         grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level=error, extra_options=tricky_convergence)
+        #         return xyz, grid, esp, electric_field, variables_dictionary, E
+        #     # # elif error_level == 1:
+        #     # #     error_level += 1
+        #     # #     dynamic_level += 1
+        #     # #     grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+        #     # #     return xyz, grid, esp, electric_field, variables_dictionary, E
 
     def check_if_there(self) -> bool:
         """

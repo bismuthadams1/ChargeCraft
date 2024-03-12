@@ -1,4 +1,5 @@
 import os  
+import psutil
 
 class GlobalConfig:
     num_threads_per_core: int = 2  # Example default value
@@ -12,3 +13,8 @@ class GlobalConfig:
     @staticmethod
     def memory():
         return GlobalConfig.memory_allocation
+    
+
+def log_memory_usage():
+    process = psutil.Process()
+    print(f"Memory Usage: {process.memory_info().rss / 1024 ** 2} MB", flush=False)

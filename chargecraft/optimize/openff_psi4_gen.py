@@ -22,6 +22,7 @@ from qcelemental.models import Molecule as QCMolecule
 import psi4
 from psi4.core import GeometryUnits
 from psi4.core import Options
+from chargecraft.globals import log_memory_usage
 
 CWD = os.getcwd()
 
@@ -121,11 +122,15 @@ class Psi4Generate:
 
             molecule_psi4.set_molecular_charge(formal_charge)
             molecule_psi4.set_multiplicity(spin_multiplicity)
-            #Currently QM settings hard coded in, can get from ESPSettings object.
             try:
+                print('memory use before E wfn')
+                log_memory_usage()                
                 E, wfn =  psi4.energy(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
+                print('memory use after E wfn')
+                log_memory_usage()   
                 psi4.oeprop(wfn,"GRID_ESP","GRID_FIELD","MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE","QUADRUPOLE", "MBIS_CHARGES")
-
+                print('memory use after oeprop')
+                log_memory_usage()   
                 esp = (
                     numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
                 )
@@ -139,7 +144,8 @@ class Psi4Generate:
                 #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
                 #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
                 print(wfn.variables())
-
+                print('memory use before wfn interaction')
+                log_memory_usage()   
                 variables_dictionary = dict()
                 #psi4 computes charges in a.u., elementary charge
                 variables_dictionary["MULLIKEN_CHARGES"] = wfn.variable("MULLIKEN_CHARGES") * unit.e
@@ -155,7 +161,8 @@ class Psi4Generate:
                 variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
                 variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
-            
+                print('memory use after wfn interaction')
+                log_memory_usage()   
                 #qcelemental.geometry is outputted in bohr, convert to  angstrom
                 final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
                 #Cleanup scratch files
