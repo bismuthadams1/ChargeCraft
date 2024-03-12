@@ -167,6 +167,7 @@ class Psi4Generate:
                 final_coordinates = (conformer.geometry * unit.bohr).to(unit.angstrom)
                 #Cleanup scratch files
                 psi4.core.clean()
+                del wfn 
 
 
                 return final_coordinates, grid, esp, electric_field, variables_dictionary, E

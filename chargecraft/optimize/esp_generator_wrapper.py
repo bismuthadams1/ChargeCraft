@@ -12,6 +12,7 @@ from openff.units import unit
 from qcelemental.models import Molecule as QCMolecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationInput, QCInputSpecification
+from qcelemental import constants
 import copy
 import numpy as np
 from chargecraft.globals import GlobalConfig
@@ -148,7 +149,7 @@ class PropGenerator:
                       }
                     
         )
-        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory, "ncores": self.ncores}, raise_error=True)
+        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory*constants.conversion_factor('bytes','gigabytes'), "ncores": self.ncores}, raise_error=True)
         print(opt)
         return opt.final_molecule
 
