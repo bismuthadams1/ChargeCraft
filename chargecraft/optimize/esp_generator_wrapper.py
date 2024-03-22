@@ -415,11 +415,6 @@ class PropGenerator(ESPGenerator):
                         "SCF__MAXITER":300}
                 grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level, extra_options=tricky_convergence)
                 return xyz, grid, esp, electric_field, variables_dictionary, E
-            # # elif error_level == 1:
-            # #     error_level += 1
-            # #     dynamic_level += 1
-            # #     grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
-            # #     return xyz, grid, esp, electric_field, variables_dictionary, E
             else:
                 raise Psi4Error 
 
