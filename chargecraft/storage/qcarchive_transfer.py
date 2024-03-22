@@ -70,7 +70,7 @@ class QCArchiveToLocalDB:
                 electric_field = electric_field, 
                 esp_settings = esp_settings, 
                 variables_dictionary= variables_dictionary, 
-                E = E
+                energy = E
             )
             self.records.append(record)
         self.db_location.store(*self.records)
