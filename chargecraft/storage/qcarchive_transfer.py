@@ -47,13 +47,13 @@ class QCArchiveToLocalDB:
                                                                 radii_scaling = '',
                                                                 cavity_area = ''
                                                                 ) if 'PCM' in item.specification.keywords else None,
-                                       ddxsettings = DDXSettings(solvent = None if not item.keywords['ddx_solvent_epsilon'] else item.keywords['ddx_solvent'],
-                                                               epsilon = item.specification.keywords['ddx_solvent_epsilon]'] 
+                                       ddxsettings = DDXSettings(solvent = None if not item.specification.keywords['ddx_solvent_epsilon'] else item.specification.keywords['ddx_solvent'],
+                                                               epsilon = item.specification.keywords['ddx_solvent_epsilon'] 
                                                                if item.specification.keywords['ddx_solvent_epsilon'] is not None else None,
                                                                radii_set = 'uff',
-                                                               ddx_model = item.specification.keywords['ddx_model'] 
+                                                               ddx_model = item.specification.keywords['ddx_model'].upper() 
                                                                if item.specification.keywords['ddx_model'] is not None else None ) if 'ddx' in item.specification.keywords else None,
-                                       psi4_dft_grid_settings = self.grid_settings(item))
+                                       psi4_dft_grid_settings = self.dft_grid_settings(item = item))
           
             grid = self.build_grid(molecule = openff_molecule, conformer = openff_conformer)
             esp, electric_field = compute_esp(qc_molecule = item.molecule, 
@@ -88,11 +88,11 @@ class QCArchiveToLocalDB:
         -------
             The grid. 
         """
-        grid = GridGenerator.generate(self.molecule, conformer, self.grid_settings)
+        grid = GridGenerator.generate(molecule, conformer, self.grid_settings)
         #returns grid in Angstrom
         return grid
     
-    def grid_settings(self, item: SinglepointRecord) -> DFTGridSettings.value | None:
+    def dft_grid_settings(self, item: SinglepointRecord) -> DFTGridSettings | None:
         """Return grid settings based on SinglePointRecord value
 
         Parameters
@@ -123,7 +123,7 @@ class QCArchiveToLocalDB:
         variables_dictionary = dict()
         #psi4 computes charges in a.u., elementary charge
         variables_dictionary["MULLIKEN_CHARGES"] = item.properties['mulliken charges'] * unit.e
-        variables_dictionary["LOWDIN_CHARGES"] = item.properties['lowdin charges '] * unit.e 
+        variables_dictionary["LOWDIN_CHARGES"] = item.properties['lowdin charges'] * unit.e 
         variables_dictionary["MBIS CHARGES"] = item.properties['mbis charges'] * unit.e
         #psi4 grab the MBIS multipoless
         variables_dictionary["MBIS DIPOLE"] = item.properties['mbis dipoles'] * unit.e * unit.bohr_radius                       
