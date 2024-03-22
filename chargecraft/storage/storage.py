@@ -129,11 +129,11 @@ class MoleculePropRecord(BaseModel):
         description= "partial charges in JSON"
         )
 
-        alpha_density: Array[float] = Field(...,
+        alpha_density: Optional[float] = Field(...,
         description= "Alpha density matrix"                                    
         )
 
-        beta_density: Array[float] = Field(...,
+        beta_density: Optional[float] = Field(...,
         description= "Beta density matrix"
         )
 

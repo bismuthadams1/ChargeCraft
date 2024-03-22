@@ -66,6 +66,7 @@ class QCArchiveToLocalDB:
             record = MoleculePropRecord.from_molecule(
                 molecule= Molecule.from_qcschema(item.molecule),  
                 conformer = openff_conformer,
+                grid_coordinates = grid,
                 esp = esp, 
                 electric_field = electric_field, 
                 esp_settings = esp_settings, 
