@@ -22,14 +22,14 @@ class QCArchiveToLocalDB:
         self.grid_settings = grid_settings
         self.records = []
 
-
+    
     def build_db(self, dataset_id: None|int = None):
         """
         
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         for item in items:
-            openff_molecule = Molecule.from_qcschema(item.molecule)
+            openff_molecule = Molecule.from_qcschema(qca_object = item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
             if item.properties is None:
                 print(f'no calculation data for molecule: {openff_molecule.to_smiles()} because of {item.status}')
@@ -106,6 +106,10 @@ class QCArchiveToLocalDB:
         DFTGridSettings or None
         
         """
+        #HF will not contain this keyword, use default grid settings
+        if 'xc grid radial points' not in item.properties:
+            return DFTGridSettings.Default
+
         if item.properties['xc grid radial points'] == 75.0 and item.properties['xc grid spherical points'] == 302.0:
             return DFTGridSettings.Default
         elif item.properties['xc grid radial points'] == 85.0 and item.properties['xc grid spherical points'] == 434.0:
