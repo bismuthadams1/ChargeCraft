@@ -2,7 +2,6 @@ from chargecraft.optimize.openff_psi4_gen import Psi4Generate
 from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
 from openff.toolkit import Molecule
 from chargecraft.storage.data_classes import ESPSettings, DDXSettings
-from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.exceptions import Psi4Error
 from tqdm import tqdm
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
@@ -13,13 +12,15 @@ from openff.units import unit
 from qcelemental.models import Molecule as QCMolecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationInput, QCInputSpecification
+from qcelemental import constants
 import copy
 import numpy as np
 from chargecraft.globals import GlobalConfig
+from chargecraft.globals import log_memory_usage
 
-class ESPGenerator:
+class PropGenerator:
     """"
-    Class for Generating ESPs which wraps around the Psi4ESPGenerator class and handles errors.   
+    Class for Generating ESPs which wraps around the Psi4 class and handles errors.   
     """
 
     def __init__(
@@ -29,7 +30,12 @@ class ESPGenerator:
               esp_settings: "ESPSettings",
               grid_settings: "GridSettingsType",
               ncores: int | None = None,
-              memory: int | None = None
+              memory: int | None = None,
+              prop_data_store = MoleculePropStore(),
+              optimise_in_method: bool = False,
+              optimise_with_ff: bool = True,
+              geom_opt: bool = True,
+              check_if_method_there: bool = True
               ) -> None:
         """"Init
 
@@ -64,6 +70,11 @@ class ESPGenerator:
         self.records = []
         self.ncores = ncores
         self.memory = memory
+        self.prop_data_store = prop_data_store
+        self.optimise_in_method = optimise_in_method
+        self.optimise_with_ff = optimise_with_ff
+        self.geom_opt = geom_opt
+        self.check_if_method_there = check_if_method_there
 
     @property
     def ncores(self):
@@ -89,38 +100,6 @@ class ESPGenerator:
         else:
             self._memory = value
 
-    def run_esps(self) -> None:
-        """
-        Run psi4 to generate the ESPs, the function loops through the conformers and handles errors.
-        Appends the outputs to the sqlfile.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-            The contents of the input file.
-        """
-
-        for conf_no in range(self.molecule.n_conformers):
-            print(f'conformer {conf_no} for {self.molecule.to_smiles()}')
-            qc_mol = self.molecule.to_qcschema(conformer=conf_no)
-            #run a ff optimize for each conformer to make sure the starting structure is sensible
-            xtb_opt_mol = self._xtb_ff_opt(qc_mol)
-            # run the psi4 HF opt starting from the final conformer
-            hf_opt_mol = self._psi4_opt(qc_mol=xtb_opt_mol)
-            opt_molecule = Molecule.from_qcschema(hf_opt_mol)
-        
-            conformer, grid, esp, electric_field, E = Psi4ESPGenerator.generate(
-               molecule=opt_molecule, conformer=opt_molecule.conformers[0], settings=self.esp_settings, minimize=False
-            )
-           
-            record = MoleculeESPRecord.from_molecule(
-                    self.molecule, conformer, grid, esp, electric_field, self.esp_settings, E
-                )
-            # push records to the db
-            self.records.append(record)
-        self.qc_data_store.store(*self.records)
 
     def fetch_data(self) -> list[MoleculeESPRecord]:
         """
@@ -170,7 +149,7 @@ class ESPGenerator:
                       }
                     
         )
-        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory, "ncores": self.ncores}, raise_error=True)
+        opt = qcengine.compute_procedure(opt_spec, "geometric", local_options = { "memory": self.memory*constants.conversion_factor('bytes','gigabytes'), "ncores": self.ncores}, raise_error=True)
         print(opt)
         return opt.final_molecule
 
@@ -234,78 +213,6 @@ class ESPGenerator:
         #returns grid in Angstrom
         return grid
 
-
-class PropGenerator(ESPGenerator):
-    """"
-    Class for Generating ESPs and properties which wraps around the Psi4Generate class and handles errors.   
-    """
-    def __init__(self,
-                 molecule: "Molecule",
-                 conformers: list[unit.Quantity],
-                 esp_settings: "ESPSettings",
-                 grid_settings: "GridSettingsType",
-                 ncores: int | None = None,
-                 memory: int | None = None,
-                 prop_data_store = MoleculePropStore(),
-                 optimise_in_method: bool = False,
-                 optimise_with_ff: bool = True,
-                 geom_opt: bool = True,
-                 check_if_method_there: bool = True
-                 ) -> None:
-        """"Init
-
-        Parameters
-        ---------
-        molecule
-            openff.molecule in which to generate the properties on
-
-        conformers 
-            unit.Quantity list of conformers generated for the molecule
-
-        esp_settings
-            ESPSettings object in which provides the level of theory and solvent settings
-
-        ncores
-            Sets the number of cores. QCArchive usually handles this internally but running locally
-            sometimes requires this to be set.
-        
-        memory
-            Sets the memory of a calculation. QCArchive usually handles this internally but running locally
-            sometimes requires this to be set.
-
-        prop_data_store 
-            name and location of the database, if one does not exist it is created
-        
-        optimise_in_method
-            optimise with the supplied method, this can be expensive if using dft functionals or high-levels of theory.
-            Default with HF.
-
-        optimise_with_ff
-            if a QM geometry is supplied, it may not be desirable to reoptimise with a forcefield. 
-
-        geom_opt
-            Optimise the geometry otherwise perform a single-point properties calculation on the supplied geometry  
-        
-        check_if_method_there
-            Run check if method + basis + solvent types already in the database, if so, skip this calculation
-        Returns
-        -------
-
-        """
-        super().__init__(
-                   molecule,
-                   conformers,
-                   esp_settings,
-                   grid_settings,
-                   ncores,
-                   memory)
-        self.prop_data_store = prop_data_store
-        self.optimise_in_method = optimise_in_method
-        self.optimise_with_ff = optimise_with_ff
-        self.geom_opt = geom_opt
-        self.check_if_method_there = check_if_method_there
-        
-    
     def run_props(self,
                   extra_options: dict[any] | None = None) -> list[np.array]:
         """
@@ -327,6 +234,8 @@ class PropGenerator(ESPGenerator):
             qc_mol = self.molecule.to_qcschema(conformer=conf_no)
 
             #run a ff optimize for each conformer to make sure the starting structure is sensible
+            print('memory use before geom opt')
+            log_memory_usage()
             if self.geom_opt:
                 if self.optimise_with_ff:
                     xtb_opt_mol = self._xtb_ff_opt(qc_mol=qc_mol)
@@ -341,7 +250,8 @@ class PropGenerator(ESPGenerator):
                         hf_opt_mol = self._hf_opt(qc_mol=qc_mol)
             else:
                 hf_opt_mol = qc_mol  
-            
+            print('memory use after geom opt')
+            log_memory_usage()
             hf_opt_mol_conf = Molecule.from_qcschema(hf_opt_mol)
             #Supply optimised geometry to list for output
             conformer_list.append(hf_opt_mol_conf.conformers[0].to(unit.angstrom))
@@ -408,15 +318,21 @@ class PropGenerator(ESPGenerator):
             return xyz, grid, esp, electric_field, variables_dictionary, E
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
         except Exception as e:
-            if error_level == 0:
-                error_level += 1
-                dynamic_level += 1
-                tricky_convergence = {"SCF__SCF_INITIAL_ACCELERATOR":"NONE",
-                        "SCF__MAXITER":300}
-                grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level, extra_options=tricky_convergence)
-                return xyz, grid, esp, electric_field, variables_dictionary, E
-            else:
-                raise Psi4Error 
+            print(e)
+            raise Psi4Error 
+        #TODO review if commented code was causeing memory leak
+        #     if error_level == 0:
+        #         error_level += 1
+        #         dynamic_level += 1
+        #         tricky_convergence = {"SCF__SCF_INITIAL_ACCELERATOR":"NONE",
+        #                 "SCF__MAXITER":300}
+        #         grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level=error, extra_options=tricky_convergence)
+        #         return xyz, grid, esp, electric_field, variables_dictionary, E
+        #     # # elif error_level == 1:
+        #     # #     error_level += 1
+        #     # #     dynamic_level += 1
+        #     # #     grid, esp, electric_field, variables_dictionary, E = self._prop_generator_wrapper(conformer, dynamic_level, error_level)
+        #     # #     return xyz, grid, esp, electric_field, variables_dictionary, E
 
     def check_if_there(self) -> bool:
         """
