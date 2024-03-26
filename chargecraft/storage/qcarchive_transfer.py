@@ -29,7 +29,7 @@ class QCArchiveToLocalDB:
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         for item in items:
-            openff_molecule = Molecule.from_qcschema(qca_object = item.molecule, allow_undefined_stereo = True)
+            openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
             if item.properties is None:
                 print(f'no calculation data for molecule: {openff_molecule.to_smiles()} because of {item.status}')
@@ -64,7 +64,7 @@ class QCArchiveToLocalDB:
             E = item.properties['current energy']
             
             record = MoleculePropRecord.from_molecule(
-                molecule= Molecule.from_qcschema(item.molecule),  
+                molecule= openff_molecule,  
                 conformer = openff_conformer,
                 grid_coordinates = grid,
                 esp = esp, 
