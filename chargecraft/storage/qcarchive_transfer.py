@@ -34,13 +34,12 @@ class QCArchiveToLocalDB:
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         print(items)
         for item in items:
+            local_record = []
             openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
             if item.properties is None:
                 print(f'no calculation data for molecule: {openff_molecule.to_smiles()} because of {item.status}')
                 continue
-            density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
-            grid = self.build_grid(molecule = openff_molecule, conformer= openff_conformer)
 
             esp_settings = ESPSettings(basis = item.specification.basis,
                                        method = item.specification.method,
@@ -52,14 +51,19 @@ class QCArchiveToLocalDB:
                                                                 radii_scaling = '',
                                                                 cavity_area = ''
                                                                 ) if 'PCM' in item.specification.keywords else None,
-                                       ddxsettings = DDXSettings(solvent = None if not item.specification.keywords['ddx_solvent_epsilon'] else item.specification.keywords['ddx_solvent'],
+                                       ddxsettings = DDXSettings(solvent = None if not 'ddx_solvent_epsilon' in item.specification.keywords else item.specification.keywords['ddx_solvent'],
                                                                epsilon = item.specification.keywords['ddx_solvent_epsilon'] 
                                                                if item.specification.keywords['ddx_solvent_epsilon'] is not None else None,
                                                                radii_set = 'uff',
                                                                ddx_model = item.specification.keywords['ddx_model'].upper() 
                                                                if item.specification.keywords['ddx_model'] is not None else None ) if 'ddx' in item.specification.keywords else None,
                                        psi4_dft_grid_settings = self.dft_grid_settings(item = item))
-          
+
+            #skip entry if already computed
+            if self.check_if_esp_there(openff_molecule=openff_molecule, esp_settings=esp_settings):
+                continue
+
+            density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
             grid = self.build_grid(molecule = openff_molecule, conformer = openff_conformer)
             esp, electric_field = compute_esp(qc_molecule = item.molecule, 
                                             density = density, 
@@ -79,9 +83,10 @@ class QCArchiveToLocalDB:
                 energy = E
             )
             print(*record)
-
-            self.records.append(record)
-        self.prop_data_store.store(*self.records)
+            local_record.append(record)
+            self.prop_data_store.store(local_record)
+            # self.records.append(record)
+        # self.prop_data_store.store(*self.records)
 
     def build_grid(self, molecule: Molecule,  conformer: unit.Quantity) -> unit.Quantity:
         """
@@ -150,3 +155,80 @@ class QCArchiveToLocalDB:
 
         return variables_dictionary
     
+    def check_if_esp_there(self, openff_molecule: Molecule, esp_settings: ESPSettings) -> bool:
+        """
+        Function to check if method alrady in database
+
+        Parameters
+        ----------
+        None
+        Returns
+        -------
+        check_for_exact_match: Bool
+            True if the method+basis+solvent combination in the database
+        
+        """
+        
+        entries =  self.prop_data_store.retrieve(openff_molecule.to_smiles(explicit_hydrogens=False))
+        if len(entry) == 0:
+            #nothing here
+            return False
+        else:
+            conformer = openff_molecule.conformers[0]
+            for entry in entries:
+                if entry.conformer in conformer:
+                    #check if method of conformer is present
+                    return self.check_method(esp_settings = esp_settings)
+                #conformer not present
+                return False
+    
+    def check_method(self, openff_molecule: Molecule , esp_settings: ESPSettings) -> bool:
+        """Check if method present given a openff molecule
+
+        Parameters
+        ----------
+        openff_molecule: Molecule
+            Molecule produce from qc_archive entry
+        esp_settings: ESPSettings
+            Method settings in the database
+
+        
+        
+        
+        """
+        # Make a set of all the methods in the database
+        method_set = set((item.esp_settings.method,
+                        item.esp_settings.basis,
+                        'DDX' if item.esp_settings.ddx_settings else 'PCM' if item.esp_settings.pcm_settings else None,
+                        None if not item.esp_settings.ddx_settings else
+                        None if not item.esp_settings.ddx_settings.epsilon else
+                        item.esp_settings.ddx_settings.epsilon,
+                        None if not item.esp_settings.ddx_settings else
+                        None if not item.esp_settings.ddx_settings.solvent else
+                        item.esp_settings.ddx_settings.solvent) for item in self.prop_store.retrieve(smiles = openff_molecule.to_smiles(explicit_hydrogens=False)))
+        
+        print(method_set)
+
+        solvent_settings  = 'DDX' if esp_settings.ddx_settings is not None else 'PCM' if esp_settings.pcm_settings is not None else None
+        
+        if solvent_settings == 'DDX':
+            if esp_settings.ddx_settings.epsilon:
+                solvent_value = esp_settings.ddx_settings.epsilon
+            if esp_settings.ddx_settings.solvent:
+                solvent_value = esp_settings.ddx_settings.solvent
+        if solvent_settings == 'PCM':
+            if esp_settings.pcm_settings.solvent:
+                solvent_value = esp_settings.pcm_settings.solvent 
+        else:
+            solvent_value = None
+
+        #TODO more detail search for cavity scaling needs to be added
+        check_for_exact_match = any(
+            esp_settings.method.lower() == method_item[0].lower() and
+            esp_settings.basis.lower() == method_item[1].lower() and  # Basis set comparison in case-insensitive manner
+            (solvent_settings == method_item[2] or (solvent_settings is None and method_item[2] is None)) and
+            (solvent_value == method_item[3] or (solvent_value is None and method_item[3] is None))
+            for method_item in method_set
+        )
+
+        return check_for_exact_match
