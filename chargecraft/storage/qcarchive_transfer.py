@@ -34,7 +34,6 @@ class QCArchiveToLocalDB:
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         print(items)
         for item in items:
-            local_record = []
             openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
             if item.properties is None:
@@ -61,6 +60,7 @@ class QCArchiveToLocalDB:
 
             #skip entry if already computed
             if self.check_if_esp_there(openff_molecule=openff_molecule, esp_settings=esp_settings):
+                print(f"entry {openff_molecule.to_smiles()} with basis {esp_settings.basis}, method {esp_settings.method} in db")
                 continue
 
             density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
@@ -83,8 +83,8 @@ class QCArchiveToLocalDB:
                 energy = E
             )
             print(*record)
-            local_record.append(record)
-            self.prop_data_store.store(local_record)
+            # local_record.append(record)
+            self.prop_data_store.store(record)
             # self.records.append(record)
         # self.prop_data_store.store(*self.records)
 
@@ -170,15 +170,17 @@ class QCArchiveToLocalDB:
         """
         
         entries =  self.prop_data_store.retrieve(openff_molecule.to_smiles(explicit_hydrogens=False))
-        if len(entry) == 0:
+        if len(entries) == 0:
             #nothing here
             return False
         else:
-            conformer = openff_molecule.conformers[0]
+            conformer = openff_molecule.conformers[0].m
+            print(conformer)
             for entry in entries:
-                if entry.conformer in conformer:
+                print(entry.conformer)
+                if numpy.array_equal(entry.conformer,conformer):
                     #check if method of conformer is present
-                    return self.check_method(esp_settings = esp_settings)
+                    return self.check_method(openff_molecule = openff_molecule, esp_settings = esp_settings)
                 #conformer not present
                 return False
     
@@ -205,7 +207,7 @@ class QCArchiveToLocalDB:
                         item.esp_settings.ddx_settings.epsilon,
                         None if not item.esp_settings.ddx_settings else
                         None if not item.esp_settings.ddx_settings.solvent else
-                        item.esp_settings.ddx_settings.solvent) for item in self.prop_store.retrieve(smiles = openff_molecule.to_smiles(explicit_hydrogens=False)))
+                        item.esp_settings.ddx_settings.solvent) for item in self.prop_data_store.retrieve(smiles = openff_molecule.to_smiles(explicit_hydrogens=False)))
         
         print(method_set)
 
