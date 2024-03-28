@@ -32,7 +32,7 @@ class QCArchiveToLocalDB:
             Provide a specific database id or the db is built from all the databases contained on the server
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
-        print(items)
+        # print(items)
         for item in items:
             openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
@@ -40,6 +40,7 @@ class QCArchiveToLocalDB:
                 print(f'no calculation data for molecule: {openff_molecule.to_smiles()} because of {item.status}')
                 continue
 
+            
             esp_settings = ESPSettings(basis = item.specification.basis,
                                        method = item.specification.method,
                                        grid_settings = self.grid_settings,
@@ -50,12 +51,12 @@ class QCArchiveToLocalDB:
                                                                 radii_scaling = '',
                                                                 cavity_area = ''
                                                                 ) if 'PCM' in item.specification.keywords else None,
-                                       ddxsettings = DDXSettings(solvent = None if not 'ddx_solvent_epsilon' in item.specification.keywords else item.specification.keywords['ddx_solvent'],
+                                       ddx_settings = DDXSettings(solvent = None if not 'ddx_solvent_epsilon' in item.specification.keywords else item.specification.keywords['ddx_solvent'],
                                                                epsilon = item.specification.keywords['ddx_solvent_epsilon'] 
-                                                               if item.specification.keywords['ddx_solvent_epsilon'] is not None else None,
+                                                               if 'ddx_solvent_epsilon' in item.specification.keywords is not None else None,
                                                                radii_set = 'uff',
                                                                ddx_model = item.specification.keywords['ddx_model'].upper() 
-                                                               if item.specification.keywords['ddx_model'] is not None else None ) if 'ddx' in item.specification.keywords else None,
+                                                               if item.specification.keywords['ddx_model'] is not None else None) if 'ddx' in item.specification.keywords else None,
                                        psi4_dft_grid_settings = self.dft_grid_settings(item = item))
 
             #skip entry if already computed
