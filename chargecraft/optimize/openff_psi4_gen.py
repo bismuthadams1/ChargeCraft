@@ -3,6 +3,7 @@ import os
 import subprocess
 from typing import TYPE_CHECKING, Optional, Tuple
 
+import time
 import jinja2
 import numpy
 from openff.units import unit
@@ -127,6 +128,8 @@ class Psi4Generate:
                 log_memory_usage()                
                 E, wfn =  psi4.energy(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
                 print('memory use after E wfn')
+                print('sleep for 10 seconds')
+                time.sleep(10)
                 log_memory_usage()   
                 psi4.oeprop(wfn,"GRID_ESP","GRID_FIELD","MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE","QUADRUPOLE", "MBIS_CHARGES")
                 print('memory use after oeprop')
