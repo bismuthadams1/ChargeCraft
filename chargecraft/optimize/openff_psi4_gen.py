@@ -3,6 +3,7 @@ import os
 import subprocess
 from typing import TYPE_CHECKING, Optional, Tuple
 
+import time
 import jinja2
 import numpy
 from openff.units import unit
@@ -125,10 +126,37 @@ class Psi4Generate:
             try:
                 print('memory use before E wfn')
                 log_memory_usage()                
-                E, wfn =  psi4.energy(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
+                # E, wfn =  psi4.gradient(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
+                if 'CCSD' in settings.method:
+                    E, wfn = psi4.gradient(f'{settings.method}/{settings.basis}',\
+                                            molecule=molecule_psi4, 
+                                            return_wfn= True)
+                    psi4.oeprop(wfn,"GRID_ESP",
+                                         "GRID_FIELD",
+                                         "MULLIKEN_CHARGES", 
+                                         "LOWDIN_CHARGES", 
+                                         "DIPOLE",
+                                         "QUADRUPOLE", 
+                                         "MBIS_CHARGES")
+                    
+
+                    
+                else:
+                    E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
+                                                                    "GRID_FIELD",
+                                                                    "MULLIKEN_CHARGES", 
+                                                                    "LOWDIN_CHARGES", 
+                                                                    "DIPOLE", 
+                                                                    "QUADRUPOLE", 
+                                                                    "MBIS_CHARGES"], 
+                                                                    molecule = molecule_psi4,
+                                                                    return_wfn = True)
+                    
+
                 print('memory use after E wfn')
+                print('sleep for 10 seconds')
+                time.sleep(10)
                 log_memory_usage()   
-                psi4.oeprop(wfn,"GRID_ESP","GRID_FIELD","MULLIKEN_CHARGES", "LOWDIN_CHARGES", "DIPOLE","QUADRUPOLE", "MBIS_CHARGES")
                 print('memory use after oeprop')
                 log_memory_usage()   
                 esp = (
@@ -143,6 +171,7 @@ class Psi4Generate:
 
                 #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
                 #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
+                print(f'all WF variables for {settings.method}')
                 print(wfn.variables())
                 print('memory use before wfn interaction')
                 log_memory_usage()   
@@ -168,11 +197,9 @@ class Psi4Generate:
                 #Cleanup scratch files
                 psi4.core.clean()
                 del wfn 
-
-
                 return final_coordinates, grid, esp, electric_field, variables_dictionary, E
             except Exception as e:
-                    print(e)
-                    psi4.core.clean()
-                    return Psi4Error
+                print(e)
+                psi4.core.clean()
+                return Psi4Error
   

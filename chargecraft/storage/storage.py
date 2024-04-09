@@ -3,8 +3,11 @@ from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 try:
  from pydantic import v1 as pydanticv1
  from pydantic.v1 import BaseModel,Field
+ from typing import Any
+
 except Exception as e:
  from pydantic import BaseModel, Field
+ from typing import Any
 
 from contextlib import contextmanager
 from sqlalchemy import create_engine, event, text
@@ -128,12 +131,11 @@ class MoleculePropRecord(BaseModel):
         charge_model_charges: Optional[str] = Field(...,
         description= "partial charges in JSON"
         )
-
-        alpha_density: Array[float] = Field(...,
+        alpha_density: Optional[Any] = Field(...,
         description= "Alpha density matrix"                                    
         )
 
-        beta_density: Array[float] = Field(...,
+        beta_density: Optional[Any] = Field(...,
         description= "Beta density matrix"
         )
 
@@ -258,13 +260,12 @@ class MoleculePropRecord(BaseModel):
                 electric_field = electric_field,
                 esp_settings= esp_settings,
                 mulliken_charges=mulliken_charges,
-
                 lowdin_charges=lowdin_charges,
-                mbis_charges=mbis_charges,
-                dipole=dipole,
-                quadropole=quadropole,
-                mbis_dipole= mbis_dipole,
-                mbis_quadropole= mbis_quadropole,
+                mbis_charges =mbis_charges,
+                dipole = dipole,
+                quadropole = quadropole,
+                mbis_dipole = mbis_dipole,
+                mbis_quadropole = mbis_quadropole,
                 mbis_octopole= mbis_octopole,
                 energy = energy,
                 alpha_density = alpha_density,
