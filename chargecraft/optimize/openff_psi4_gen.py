@@ -127,30 +127,31 @@ class Psi4Generate:
                 print('memory use before E wfn')
                 log_memory_usage()                
                 # E, wfn =  psi4.gradient(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
-                if 'CCSD' in settings.method:
-                    E, wfn = psi4.gradient(f'{settings.method}/{settings.basis}',\
-                                            molecule=molecule_psi4, 
-                                            return_wfn= True)
-                    psi4.oeprop(wfn,"GRID_ESP",
-                                         "GRID_FIELD",
-                                         "MULLIKEN_CHARGES", 
-                                         "LOWDIN_CHARGES", 
-                                         "DIPOLE",
-                                         "QUADRUPOLE", 
-                                         "MBIS_CHARGES")
+                # if 'CCSD' in settings.method:
+                #     print('running ccsd!!!!')
+                #     E, wfn = psi4.gradient(f'{settings.method}/{settings.basis}',\
+                #                             molecule=molecule_psi4, 
+                #                             return_wfn= True)
+                #     psi4.oeprop(wfn,"GRID_ESP",
+                #                     "GRID_FIELD",
+                #                     "MULLIKEN_CHARGES", 
+                #                     "LOWDIN_CHARGES", 
+                #                     "DIPOLE",
+                #                     "QUADRUPOLE", 
+                #                     "MBIS_CHARGES")
                     
 
                     
-                else:
-                    E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
-                                                                    "GRID_FIELD",
-                                                                    "MULLIKEN_CHARGES", 
-                                                                    "LOWDIN_CHARGES", 
-                                                                    "DIPOLE", 
-                                                                    "QUADRUPOLE", 
-                                                                    "MBIS_CHARGES"], 
-                                                                    molecule = molecule_psi4,
-                                                                    return_wfn = True)
+                # else:
+                E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
+                                                                "GRID_FIELD",
+                                                                "MULLIKEN_CHARGES", 
+                                                                "LOWDIN_CHARGES", 
+                                                                "DIPOLE", 
+                                                                "QUADRUPOLE", 
+                                                                "MBIS_CHARGES"], 
+                                                                molecule = molecule_psi4,
+                                                                return_wfn = True)
                     
 
                 print('memory use after E wfn')
@@ -186,8 +187,12 @@ class Psi4Generate:
                 variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
                 #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
                 #different indexes for dipole if dft vs hf method
-                variables_dictionary["DIPOLE"] = wfn.variable("SCF DIPOLE") * unit.e * unit.bohr_radius
-                variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
+                if 'ccsd' in settings.method:
+                    variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method.upper()} DIPOLE") * unit.e * unit.bohr_radius
+                    variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method.upper()} QUADRUPOLE") * unit.e * unit.bohr_radius**2
+                else:
+                    variables_dictionary["DIPOLE"] = wfn.variable("SCF DIPOLE") * unit.e * unit.bohr_radius
+                    variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
                 variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
                 print('memory use after wfn interaction')
