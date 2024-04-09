@@ -23,7 +23,6 @@ class QCArchiveToLocalDB:
         self.records = []
 
     
-<<<<<<< HEAD
     def build_db(self, dataset_id: None|int = None) -> None:
         """Build the database baseds on the qcarchive
 
@@ -31,18 +30,9 @@ class QCArchiveToLocalDB:
         ----------
         dataset_id: None|int
             Provide a specific database id or the db is built from all the databases contained on the server
-=======
-    def build_db(self, dataset_id: None|int = None):
-        """build the database 
-        
->>>>>>> b45ed7e (latest)
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
-<<<<<<< HEAD
         # print(items)
-=======
-        print(items)
->>>>>>> a78abac (stage)
         for item in items:
             openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
@@ -94,16 +84,9 @@ class QCArchiveToLocalDB:
                 energy = E
             )
             print(*record)
-<<<<<<< HEAD
-            # local_record.append(record)
-            self.prop_data_store.store(record)
-            # self.records.append(record)
-        # self.prop_data_store.store(*self.records)
-=======
 
             self.records.append(record)
         self.prop_data_store.store(*self.records)
->>>>>>> a78abac (stage)
 
     def build_grid(self, molecule: Molecule,  conformer: unit.Quantity) -> unit.Quantity:
         """
