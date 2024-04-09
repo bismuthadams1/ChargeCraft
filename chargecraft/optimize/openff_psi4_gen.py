@@ -128,6 +128,7 @@ class Psi4Generate:
                 log_memory_usage()                
                 # E, wfn =  psi4.gradient(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
                 if 'CCSD' in settings.method:
+
                     E, wfn = psi4.gradient(f'{settings.method}/{settings.basis}',\
                                             molecule=molecule_psi4, 
                                             return_wfn= True)
