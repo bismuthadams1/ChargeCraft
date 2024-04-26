@@ -152,8 +152,8 @@ class Psi4Generate:
                                                                 "MBIS_CHARGES"], 
                                                                 molecule = molecule_psi4,
                                                                 return_wfn = True)
-                    
-
+                
+                wfn.to_file(filename = CWD + f'/{settings.method}_{settings.basis}_{molecule.to_smiles(explicit_hydrogens=False)}.npy')
                 print('memory use after E wfn')
                 print('sleep for 10 seconds')
                 time.sleep(10)
@@ -187,7 +187,8 @@ class Psi4Generate:
                 variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
                 #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
                 #different indexes for dipole if dft vs hf method
-                if 'ccsd' in settings.method:
+                if 'ccsd' in settings.method.lower():
+                    print('CCSD in method!!')
                     variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method.upper()} DIPOLE") * unit.e * unit.bohr_radius
                     variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method.upper()} QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 else:
