@@ -187,13 +187,13 @@ class Psi4Generate:
                 variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
                 #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
                 #different indexes for dipole if dft vs hf method
-                if 'ccsd' in settings.method.lower():
-                    print('CCSD in method!!')
-                    variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method.upper()} DIPOLE") * unit.e * unit.bohr_radius
-                    variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method.upper()} QUADRUPOLE") * unit.e * unit.bohr_radius**2
-                else:
-                    variables_dictionary["DIPOLE"] = wfn.variable("SCF DIPOLE") * unit.e * unit.bohr_radius
-                    variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
+                # if 'ccsd' in settings.method.lower():
+                print('CCSD in method!!')
+                variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method.upper()} DIPOLE") * unit.e * unit.bohr_radius
+                variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method.upper()} QUADRUPOLE") * unit.e * unit.bohr_radius**2
+                # else:
+                #     variables_dictionary["DIPOLE"] = wfn.variable("SCF DIPOLE") * unit.e * unit.bohr_radius
+                #     variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
                 variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
                 print('memory use after wfn interaction')
