@@ -14,6 +14,7 @@ from chargecraft.storage.data_classes import ESPSettings, DDXSettings
 
 
 from openff.recharge.esp.exceptions import Psi4Error
+from openff.recharge.esp import DFTGridSettings
 from chargecraft.globals import GlobalConfig
 
 from openff.toolkit import Molecule
@@ -55,25 +56,27 @@ class Psi4Generate:
             total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
             spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
-            conformer_Ang = Molecule.from_qcschema(conformer)
+            qc_mol = conformer
+            qc_data = qc_mol.dict()
+            qc_data['fix_com'] = True
+            qc_data['fix_orientation'] = True
+            qc_mol = QCMolecule.from_data(qc_data)
 
-            conformer_Ang = conformer_Ang.conformers[0].to(unit.angstrom).m
-
-            #TODO check reorientation here
-            conformer_Ang_string = "nocom\nnoreorient\n"
-            for index, atom in enumerate(molecule.atoms):
-                  conformer_Ang_string += f"{SYMBOLS[atom.atomic_number]}\t{conformer_Ang[index, 0]}\t{conformer_Ang[index, 1]}\t{conformer_Ang[index, 2]}\n"
-       
-            molecule_psi4 = psi4.geometry(conformer_Ang_string.strip())
+            # conformer_Ang = conformer_Ang.conformers[0].to(unit.angstrom).m
+            psi4_molecule =  qc_mol.to_string('psi4','angstrom')
+         
+            molecule_psi4 = psi4.geometry(psi4_molecule)
             print(molecule_psi4)
             molecule_psi4.set_units(GeometryUnits.Angstrom)
             
-            #TODO set number of threads somewhere
-            #Reset options between runs
             psi4.core.clean_options()
-            #Ultrafine grid
-            psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
-                              "DFT_RADIAL_POINTS":"99"})
+            #grid
+            if settings.psi4_dft_grid_settings == DFTGridSettings.Fine:
+                psi4.set_options({"DFT_SPHERICAL_POINTS":"590",
+                                "DFT_RADIAL_POINTS":"99"})
+            if settings.psi4_dft_grid_settings == DFTGridSettings.Medium:
+                psi4.set_options({"DFT_SPHERICAL_POINTS":"434",
+                                "DFT_RADIAL_POINTS":"85"})
             #Set additional options
             if extra_options:
                 print(f'setting extra options: {extra_options}')
@@ -126,23 +129,6 @@ class Psi4Generate:
             try:
                 print('memory use before E wfn')
                 log_memory_usage()                
-                # E, wfn =  psi4.gradient(f'{settings.method}/{settings.basis}', molecule = molecule_psi4, return_wfn = True)
-                # if 'CCSD' in settings.method:
-                #     print('running ccsd!!!!')
-                #     E, wfn = psi4.gradient(f'{settings.method}/{settings.basis}',\
-                #                             molecule=molecule_psi4, 
-                #                             return_wfn= True)
-                #     psi4.oeprop(wfn,"GRID_ESP",
-                #                     "GRID_FIELD",
-                #                     "MULLIKEN_CHARGES", 
-                #                     "LOWDIN_CHARGES", 
-                #                     "DIPOLE",
-                #                     "QUADRUPOLE", 
-                #                     "MBIS_CHARGES")
-                    
-
-                    
-                # else:
                 E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
                                                                 "GRID_FIELD",
                                                                 "MULLIKEN_CHARGES", 
@@ -153,7 +139,6 @@ class Psi4Generate:
                                                                 molecule = molecule_psi4,
                                                                 return_wfn = True)
                 
-                wfn.to_file(filename = CWD + f'/{settings.method}_{settings.basis}_{molecule.to_smiles(explicit_hydrogens=False)}.npy')
                 print('memory use after E wfn')
                 print('sleep for 10 seconds')
                 time.sleep(10)
@@ -170,8 +155,6 @@ class Psi4Generate:
                     / (unit.e * unit.bohr)
                 )
 
-                #variable_names = ["MULLIKEN_CHARGES", "LOWDIN_CHARGES", "HF DIPOLE", "HF QUADRUPOLE", "MBIS CHARGES"]
-                #variables_dictionary = {name: wfn.variable(name) for name in variable_names}
                 print(f'all WF variables for {settings.method}')
                 print(wfn.variables())
                 print('memory use before wfn interaction')
@@ -185,15 +168,8 @@ class Psi4Generate:
                 variables_dictionary["MBIS DIPOLE"] = wfn.variable("MBIS DIPOLES") * unit.e * unit.bohr_radius
                 variables_dictionary["MBIS QUADRUPOLE"] = wfn.variable("MBIS QUADRUPOLES") * unit.e * unit.bohr_radius**2
                 variables_dictionary["MBIS OCTOPOLE"] = wfn.variable("MBIS OCTUPOLES") * unit.e * unit.bohr_radius**3
-                #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
-                #different indexes for dipole if dft vs hf method
-                # if 'ccsd' in settings.method.lower():
-                print('CCSD in method!!')
                 variables_dictionary["DIPOLE"] = wfn.variable(f"{settings.method.upper()} DIPOLE") * unit.e * unit.bohr_radius
                 variables_dictionary["QUADRUPOLE"] = wfn.variable(f"{settings.method.upper()} QUADRUPOLE") * unit.e * unit.bohr_radius**2
-                # else:
-                #     variables_dictionary["DIPOLE"] = wfn.variable("SCF DIPOLE") * unit.e * unit.bohr_radius
-                #     variables_dictionary["QUADRUPOLE"] = wfn.variable("QUADRUPOLE") * unit.e * unit.bohr_radius**2
                 variables_dictionary["ALPHA_DENSITY"] = wfn.Da().to_array()
                 variables_dictionary["BETA_DENSITY"] = wfn.Db().to_array()
                 print('memory use after wfn interaction')
