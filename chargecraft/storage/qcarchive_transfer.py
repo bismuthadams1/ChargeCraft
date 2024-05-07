@@ -7,7 +7,7 @@ from openff.recharge.grids import GridGenerator, GridSettingsType
 from openff.recharge.esp import DFTGridSettings
 from openff.recharge.esp.qcresults import reconstruct_density, compute_esp
 from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
-
+from qcelemental.models import Molecule as QCMolecule
 import numpy
 
 class QCArchiveToLocalDB:
@@ -32,8 +32,15 @@ class QCArchiveToLocalDB:
             Provide a specific database id or the db is built from all the databases contained on the server
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
-        # print(items)
+
         for item in items:
+            #ensure orientation is correct
+            qc_mol =  item.molecule 
+            qc_data = qc_mol.dict()
+            qc_data['fix_com'] = True
+            qc_data['fix_orientation'] = True
+            qc_mol = QCMolecule.from_data(qc_data)
+            
             openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
             if item.properties is None:
