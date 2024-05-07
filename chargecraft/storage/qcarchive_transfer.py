@@ -40,8 +40,8 @@ class QCArchiveToLocalDB:
             qc_data['fix_com'] = True
             qc_data['fix_orientation'] = True
             qc_mol = QCMolecule.from_data(qc_data)
-            
-            openff_molecule = Molecule.from_qcschema(item.molecule, allow_undefined_stereo = True)
+
+            openff_molecule = Molecule.from_qcschema(qc_mol, allow_undefined_stereo = True)
             openff_conformer = openff_molecule.conformers[0]
             if item.properties is None:
                 print(f'no calculation data for molecule: {openff_molecule.to_smiles()} because of {item.status}')
