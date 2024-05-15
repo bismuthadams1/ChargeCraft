@@ -95,10 +95,11 @@ class QCArchiveToLocalDB:
                 variables_dictionary= variables_dictionary, 
                 energy = E
             )
-            print(*record)
 
             self.records.append(record)
-        self.prop_data_store.store(*self.records)
+            self.prop_data_store.store(self.records[-1])
+        # self.prop_data_store.store(*self.records)
+
 
     def build_grid(self, molecule: Molecule,  conformer: unit.Quantity) -> unit.Quantity:
         """
