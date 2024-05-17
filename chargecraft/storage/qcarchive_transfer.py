@@ -73,7 +73,7 @@ class QCArchiveToLocalDB:
 
             density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
             grid = self.build_grid(molecule = openff_molecule, conformer = openff_conformer)
-            esp, electric_field = compute_esp(qc_molecule = item.molecule, 
+            esp, electric_field = compute_esp(qc_molecule =qc_mol, 
                                             density = density, 
                                             esp_settings = esp_settings,
                                             grid = grid)
