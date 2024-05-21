@@ -601,6 +601,11 @@ class MoleculePropStore:
                                         conformer_record = conformer_record.filter(DBDDXSettings.radii_set == radii_set)
                                     if ddx_model is not None:
                                         conformer_record = conformer_record.filter(DBDDXSettings.radii_set == radii_set)
+                                        
+            elif implicit_solvent is None:
+                        conformer_record = conformer_record.filter(DBConformerPropRecord.pcm_settings_id.is_(None))
+                        conformer_record = conformer_record.filter(DBConformerPropRecord.ddx_settings_id.is_(None))
+
 
             if conformer_record.count() > 1:
                  raise ValueError("Multiple conformer records found, please provide more options to filter.")
@@ -765,6 +770,7 @@ class MoleculePropStore:
                     elif implicit_solvent is None:
                         db_records = db_records.filter(DBConformerPropRecord.pcm_settings_id.is_(None))
                         db_records = db_records.filter(DBConformerPropRecord.ddx_settings_id.is_(None))
+
                 db_records = db_records.all()
                 records = self._db_records_to_model(db_records)
 
