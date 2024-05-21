@@ -96,6 +96,8 @@ class QCArchiveToLocalDB:
                 energy = E
             )
 
+            print(record)
+
             self.records.append(record)
             self.prop_data_store.store(self.records[-1])
         # self.prop_data_store.store(*self.records)
