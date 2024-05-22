@@ -297,6 +297,7 @@ class DBDDXSettings(_UniqueMixin, DBBase):
 
 class DBESPSettings(_UniqueMixin, DBBase):
     __tablename__ = "esp_settings"
+    #TODO: need to add a solvent column constraint here, currently Unique Constraint errors occur when the basis/method is duplicated across different solvents
     __table_args__ = (UniqueConstraint("basis", "method"),)
 
     id = Column(Integer, primary_key=True, index=True)

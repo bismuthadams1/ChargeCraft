@@ -23,7 +23,7 @@ class QCArchiveToLocalDB:
         self.records = []
 
     
-    def build_db(self, dataset_id: None|int = None) -> None:
+    def build_db(self, dataset_id: None|int = None, exclude_keys: list = None) -> None:
         """Build the database baseds on the qcarchive
 
         Parameters
@@ -32,8 +32,9 @@ class QCArchiveToLocalDB:
             Provide a specific database id or the db is built from all the databases contained on the server
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
+        filtered_items = self.filter_items(items, exclude_keys=exclude_keys)
 
-        for item in items:
+        for item in filtered_items:
             #ensure orientation is correct
             qc_mol =  item.molecule 
             qc_data = qc_mol.dict()
@@ -47,7 +48,6 @@ class QCArchiveToLocalDB:
                 print(f'no calculation data for molecule: {openff_molecule.to_smiles()} because of {item.status}')
                 continue
 
-            
             esp_settings = ESPSettings(basis = item.specification.basis,
                                        method = item.specification.method,
                                        grid_settings = self.grid_settings,
@@ -99,8 +99,9 @@ class QCArchiveToLocalDB:
             print(record)
 
             self.records.append(record)
-            self.prop_data_store.store(self.records[-1])
-        # self.prop_data_store.store(*self.records)
+            # if we append here we will get unique constraints issues
+            # self.prop_data_store.store(self.records[-1])
+        self.prop_data_store.store(*self.records)
 
 
     def build_grid(self, molecule: Molecule,  conformer: unit.Quantity) -> unit.Quantity:
@@ -257,3 +258,33 @@ class QCArchiveToLocalDB:
         )
 
         return check_for_exact_match
+    
+    def filter_items(self, items, exclude_keys) -> list[SinglepointRecord]:
+        """Filter items based on exclude_keys.
+
+        Parameters
+        ----------
+        items: list
+            List of items to filter
+        exclude_keys: list
+            List of keys to exclude from the dataset
+
+        Returns
+        -------
+        list
+            Filtered list of items
+        """
+        if exclude_keys is None:
+            return items
+
+        filtered_items = []
+        for item in items:
+            exclude = False
+            for key in exclude_keys:
+                if key in item.specification.keywords:
+                    exclude = True
+                    break
+            if not exclude:
+                filtered_items.append(item)
+        
+        return filtered_items

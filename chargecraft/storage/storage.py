@@ -541,7 +541,7 @@ class MoleculePropStore:
         #TODO need to find a way of ensuring that only one partial charge result is returned      
         # print(len(existing_partial_charges))
         # if len(existing_partial_charges) > 1:
-        #      raise ValueError("More than 1 records retrieved, provide more specific filter options") 
+        #      raise ValueError("More than 1 records retrieved, provide more specific filter options")
 
         if isinstance(charges, np.ndarray):
          existing_partial_charges[charge_model] = charges.tolist()
