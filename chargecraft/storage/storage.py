@@ -185,7 +185,7 @@ class MoleculePropRecord(BaseModel):
 
         @property
         def mbis_octopole_quantity(self) -> unit.Quantity:
-            return self.mbis_quadropole * unit.e * unit.bohr_radius ** 3       
+            return self.mbis_octopole * unit.e * unit.bohr_radius ** 3       
         
         @property
         def energy_quantity(self) -> unit.Quantity:

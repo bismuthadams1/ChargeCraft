@@ -84,6 +84,7 @@ class Psi4Generate:
             #Number of threads should be the number of cores * num of threads per core
             psi4.set_num_threads(GlobalConfig().total_threads())
             psi4.set_memory(GlobalConfig().memory())
+            psi4.set_options({"PROPERTIES_ORIGIN":[0,0,0]})
             print(f'number of threads is {GlobalConfig().total_threads()}')
             enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
             print(f'settings pcm {settings.pcm_settings}')

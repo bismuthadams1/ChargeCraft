@@ -14,7 +14,6 @@ from sqlalchemy import (
     Float,
 )
 from sqlalchemy.orm import Query, Session, relationship, declarative_base
-
 from chargecraft.storage.data_classes import DDXSettings, ESPSettings, PCMSettings
 from openff.recharge.grids import GridSettingsType, LatticeGridSettings, MSKGridSettings
 

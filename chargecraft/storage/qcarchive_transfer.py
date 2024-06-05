@@ -100,8 +100,8 @@ class QCArchiveToLocalDB:
 
             self.records.append(record)
             # if we append here we will get unique constraints issues
-            # self.prop_data_store.store(self.records[-1])
-        self.prop_data_store.store(*self.records)
+            self.prop_data_store.store(self.records[-1])
+        # self.prop_data_store.store(*self.records)
 
 
     def build_grid(self, molecule: Molecule,  conformer: unit.Quantity) -> unit.Quantity:
