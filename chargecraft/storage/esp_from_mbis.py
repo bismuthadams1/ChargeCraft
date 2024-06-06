@@ -161,3 +161,27 @@ class ESPCalculator:
             quadrupoles[i][2][2] -= trace
 
         return quadrupoles * unit.e * unit.bohr * unit.bohr
+    
+#TODO: Finalize Electric Field method
+    
+        # def esp_to_electric_field(self, esp: np.ndarray, grid: unit.Quantity) -> np.ndarray:
+        # """
+        # Convert ESP to electric field by computing the gradient.
+
+        # Parameters
+        # ----------
+        # esp : np.ndarray
+        #     Electrostatic potential values.
+        # grid : unit.Quantity
+        #     Grid coordinates.
+
+        # Returns
+        # -------
+        # electric_field : np.ndarray
+        #     Electric field values.
+        # """
+        # grid = grid.m  # Convert to base units without units for gradient calculation
+        # grid_spacing = np.array([np.diff(grid[:, i]).mean() for i in range(3)])  # Assuming uniform grid spacing
+        # grad_x, grad_y, grad_z = np.gradient(esp.reshape(grid.shape[:-1]), *grid_spacing)
+        # electric_field = -np.array([grad_x, grad_y, grad_z])
+        # return electric_field * (unit.hartree / unit.e / unit.bohr)  # Convert to appropriate units

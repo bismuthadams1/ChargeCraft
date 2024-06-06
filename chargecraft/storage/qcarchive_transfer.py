@@ -1,4 +1,5 @@
 from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
+from chargecraft.storage.esp_from_mbis import ESPCalculator
 from qcportal import PortalClient
 from qcportal.singlepoint.record_models import SinglepointRecord
 from openff.toolkit.topology import Molecule
@@ -20,10 +21,11 @@ class QCArchiveToLocalDB:
         self.qc_archive = qc_archive
         self.prop_data_store = prop_data_store
         self.grid_settings = grid_settings
+        self.esp_calculator = ESPCalculator()
         self.records = []
 
     
-    def build_db(self, dataset_id: None|int = None, exclude_keys: list = None) -> None:
+    def build_db(self, dataset_id: None|int = None, exclude_keys: list = None, qm_esp: bool = False ) -> None:
         """Build the database baseds on the qcarchive
 
         Parameters
@@ -71,13 +73,21 @@ class QCArchiveToLocalDB:
                 print(f"entry {openff_molecule.to_smiles()} with basis {esp_settings.basis}, method {esp_settings.method} in db")
                 continue
 
-            density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
             grid = self.build_grid(molecule = openff_molecule, conformer = openff_conformer)
-            esp, electric_field = compute_esp(qc_molecule =qc_mol, 
-                                            density = density, 
-                                            esp_settings = esp_settings,
-                                            grid = grid)
             variables_dictionary = self.construct_variables_dictionary(item = item)
+
+            if qm_esp:
+                density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
+                esp, electric_field = compute_esp(qc_molecule =qc_mol, 
+                                                density = density, 
+                                                esp_settings = esp_settings,
+                                                grid = grid)
+            else:
+                esp = self.esp_calculator.assign_esp(monopoles=variables_dictionary['MBIS CHARGES'],
+                                                     dipoles=variables_dictionary['MBIS DIPOLE'],
+                                                     quadropules=variables_dictionary['MBIS QUADRUPOLE'],
+                                                     grid=grid,
+                                                     coordinates=openff_conformer)
 
             #sometimes the complete dictionary is not available, move to next item
             if not variables_dictionary:
@@ -299,3 +309,4 @@ class QCArchiveToLocalDB:
                 filtered_items.append(item)
         
         return filtered_items
+
