@@ -115,6 +115,7 @@ class QCArchiveToLocalDB:
 
         Returns
         -------
+        unit.Quantity
             The grid. 
         """
         grid = GridGenerator.generate(molecule, conformer, self.grid_settings)
@@ -137,7 +138,7 @@ class QCArchiveToLocalDB:
         #HF will not contain this keyword, use default grid settings
         if 'xc grid radial points' not in item.properties:
             return DFTGridSettings.Default
-
+        #Review grid points
         if item.properties['xc grid radial points'] == 75.0 and item.properties['xc grid spherical points'] == 302.0:
             return DFTGridSettings.Default
         elif item.properties['xc grid radial points'] == 85.0 and item.properties['xc grid spherical points'] == 434.0:
@@ -148,8 +149,18 @@ class QCArchiveToLocalDB:
             return None
 
     def construct_variables_dictionary(self, item: SinglepointRecord) -> dict:
-        """
+        """Construct the variables dictionary from the SinglepointRecord
+
+        Parameters
+        ----------
+        item: SinglepointRecord
+            qcarchive record to pull down and produce esp from
         
+        Returns
+        -------
+        dict
+            variables dictionary to be stored in MoleculePropStore
+
         """
 
         # Unpack the variables_dictionary and add them to the molecule prop record
