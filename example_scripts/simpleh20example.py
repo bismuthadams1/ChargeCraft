@@ -1,0 +1,39 @@
+import chargecraft
+from chargecraft.inputSetup.SmilesInputs import ReadInput
+from chargecraft.optimize.esp_generator_wrapper import PropGenerator
+from chargecraft.conformers.conformer_gen import Conformers
+from openff.recharge.utilities.molecule import smiles_to_molecule
+from openff.recharge.grids import LatticeGridSettings
+from chargecraft.storage.data_classes import ESPSettings, PCMSettings
+from chargecraft.storage.storage import MoleculePropRecord, MoleculePropStore
+
+def main():
+    
+    #Read the .smi input and add to list
+    smiles = '[H]O[H]'
+    molecule = smiles_to_molecule(smiles)
+
+    # Define the grid that the electrostatic properties will be trained on and the
+    # level of theory to compute the properties at.
+    grid_settings = LatticeGridSettings(
+        type="fcc", spacing=0.5, inner_vdw_scale=1.4, outer_vdw_scale=2.0
+    )
+
+    esp_settings = ESPSettings(basis="6-311g*", method="HF", grid_settings=grid_settings) #-D3BJ
+
+    #Generate the conformers
+    conformer_list = Conformers.generate(molecule, generation_type='rdkit', max_conformers=1)
+    ESP_gen = PropGenerator(molecule = molecule, 
+                            conformers = conformer_list, 
+                            esp_settings = esp_settings, 
+                            grid_settings = grid_settings, 
+                            prop_data_store = MoleculePropStore(database_path='properties_store_example.db'),
+                            optimise_in_method=True)
+    ESP_gen.memory = 1e+9 #2gb
+    print(f'number of cores is {ESP_gen.ncores}')
+    print(f'memory is {ESP_gen.memory}')
+    ESP_gen.run_props()
+        
+
+if __name__ == "__main__":
+    main()
