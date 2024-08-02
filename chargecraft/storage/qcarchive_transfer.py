@@ -25,7 +25,7 @@ class QCArchiveToLocalDB:
         self.records = []
 
     
-    def build_db(self, dataset_id: None|int = None, exclude_keys: list = None, qm_esp: bool = False ) -> None:
+    def build_db(self, dataset_id: None|int = None, exclude_keys: list = None, qm_esp: bool = False, split: tuple[int,int] = None) -> None:
         """Build the database based on the qcarchive record
 
         Parameters
@@ -38,6 +38,9 @@ class QCArchiveToLocalDB:
             if True the qm_esp will be constructed in the same method/basis as the SinglePointRecord. If False,
             the esp will be built using the multipole expansion, this comes with some inherent error but doesn't
             require a qm calculation.  
+        split: tuple[int,int]
+            percentage range of the dataset to build the db on. For example, if we want to include the middle third 
+            we would specify [33,66]. Or the last third [66,100]
 
         Returns
         -------
@@ -45,6 +48,21 @@ class QCArchiveToLocalDB:
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         filtered_items = self.filter_items(items, exclude_keys=exclude_keys)
+
+        if split:
+            start_pct, end_pct = split
+            if start_pct > 100 or end_pct > 100:
+                raise ValueError("Values in the split tuple should not exceed 100.")
+            if start_pct < 0 or end_pct < 0:
+                raise ValueError("Values in the split tuple should not be negative.")
+            
+            start_pct = min(start_pct, 100)
+            end_pct = min(end_pct, 100)
+
+            n_items = len(filtered_items)
+            start_idx = int(start_pct / 100 * n_items)
+            end_idx = int(end_pct / 100 * n_items)
+            filtered_items = filtered_items[start_idx:end_idx]
 
         for item in filtered_items:
             #ensure orientation is correct
