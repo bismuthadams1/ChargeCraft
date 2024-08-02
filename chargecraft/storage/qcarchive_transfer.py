@@ -9,7 +9,7 @@ from openff.recharge.esp import DFTGridSettings
 from openff.recharge.esp.qcresults import reconstruct_density, compute_esp
 from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
 from qcelemental.models import Molecule as QCMolecule
-import numpy
+import numpy as np
 
 class QCArchiveToLocalDB:
 
@@ -26,12 +26,22 @@ class QCArchiveToLocalDB:
 
     
     def build_db(self, dataset_id: None|int = None, exclude_keys: list = None, qm_esp: bool = False ) -> None:
-        """Build the database baseds on the qcarchive
+        """Build the database based on the qcarchive record
 
         Parameters
         ----------
         dataset_id: None|int
             Provide a specific database id or the db is built from all the databases contained on the server
+        exclude_keys: list
+            exclude items based on specifcation.keywords dictionary e.g. ddx=True.
+        qm_esp: bool
+            if True the qm_esp will be constructed in the same method/basis as the SinglePointRecord. If False,
+            the esp will be built using the multipole expansion, this comes with some inherent error but doesn't
+            require a qm calculation.  
+
+        Returns
+        -------
+
         """
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         filtered_items = self.filter_items(items, exclude_keys=exclude_keys)
@@ -75,23 +85,31 @@ class QCArchiveToLocalDB:
 
             grid = self.build_grid(molecule = openff_molecule, conformer = openff_conformer)
             variables_dictionary = self.construct_variables_dictionary(item = item)
+            print(variables_dictionary)
 
             if qm_esp:
+                print("computing the QM esp")
                 density = reconstruct_density(wavefunction=item.wavefunction, n_alpha=item.properties['calcinfo_nalpha'])
                 esp, electric_field = compute_esp(qc_molecule =qc_mol, 
                                                 density = density, 
                                                 esp_settings = esp_settings,
                                                 grid = grid)
             else:
-                esp = self.esp_calculator.assign_esp(monopoles=variables_dictionary['MBIS CHARGES'],
-                                                     dipoles=variables_dictionary['MBIS DIPOLE'],
-                                                     quadropules=variables_dictionary['MBIS QUADRUPOLE'],
+                esp = np.array(self.esp_calculator.assign_esp(monopoles=variables_dictionary['MBIS CHARGES'],
+                                                     dipoles=variables_dictionary['MBIS DIPOLE'].reshape(-1,3),
+                                                     quadropules=variables_dictionary['MBIS QUADRUPOLE'].reshape(-1,3,3),
                                                      grid=grid,
-                                                     coordinates=openff_conformer)
+                                                     coordinates=openff_conformer)[0])*(unit.hartree / unit.e)
+                print('esp is:')
+                print(esp)
+                #TODO: finish code to produce electric field
+                #empty list for now
+                electric_field = np.array([]) * (unit.hartree / (unit.bohr * unit.e))
 
-            #sometimes the complete dictionary is not available, move to next item
-            if not variables_dictionary:
-                continue
+            # #sometimes the complete dictionary is not available, move to next item
+            # if not variables_dictionary:
+            #     print('variables dictionary not created')
+            #     continue
 
             E = item.properties['current energy']
             
@@ -105,8 +123,6 @@ class QCArchiveToLocalDB:
                 variables_dictionary= variables_dictionary, 
                 energy = E
             )
-
-            print(record)
 
             self.records.append(record)
             # if we append here we will get unique constraints issues
@@ -158,6 +174,46 @@ class QCArchiveToLocalDB:
         else:
             return None
 
+    # def construct_variables_dictionary(self, item: SinglepointRecord) -> dict:
+    #     """Construct the variables dictionary from the SinglepointRecord
+
+    #     Parameters
+    #     ----------
+    #     item: SinglepointRecord
+    #         qcarchive record to pull down and produce esp from
+        
+    #     Returns
+    #     -------
+    #     dict
+    #         variables dictionary to be stored in MoleculePropStore
+
+    #     """
+
+    #     # Unpack the variables_dictionary and add them to the molecule prop record
+    #     variables_dictionary = dict()
+    #     try:
+    #         #psi4 computes charges in a.u., elementary charge
+    #         variables_dictionary["MULLIKEN_CHARGES"] = item.properties['mulliken charges'] * unit.e
+    #         variables_dictionary["LOWDIN_CHARGES"] = item.properties['lowdin charges'] * unit.e 
+    #         variables_dictionary["MBIS CHARGES"] = item.properties['mbis charges'] * unit.e
+    #         #psi4 grab the MBIS multipoless
+    #         variables_dictionary["MBIS DIPOLE"] = item.properties['mbis dipoles'] * unit.e * unit.bohr_radius                       
+    #         variables_dictionary["MBIS QUADRUPOLE"] =  item.properties['mbis quadrupoles'] * unit.e * unit.bohr_radius**2
+    #         variables_dictionary["MBIS OCTOPOLE"] = item.properties['mbis octupoles'] * unit.e * unit.bohr_radius**3
+    #         #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
+    #         #different indexes for dipole if dft vs hf method
+    #         variables_dictionary["DIPOLE"] = item.properties['scf dipole'] * unit.e * unit.bohr_radius
+    #         variables_dictionary["QUADRUPOLE"] = item.properties['scf quadrupole'] * unit.e * unit.bohr_radius**2
+    #         variables_dictionary["ALPHA_DENSITY"] = item.wavefunction.scf_density_a
+    #         variables_dictionary["BETA_DENSITY"] = item.wavefunction.scf_density_b
+            
+    #         return variables_dictionary
+
+    #     except KeyError:
+    #         print(f'failure with item {item.molecule} and method {item.specification.method} and basis{item.specification.basis}')
+
+    #         return None
+
     def construct_variables_dictionary(self, item: SinglepointRecord) -> dict:
         """Construct the variables dictionary from the SinglepointRecord
 
@@ -172,32 +228,26 @@ class QCArchiveToLocalDB:
             variables dictionary to be stored in MoleculePropStore
 
         """
-
-        # Unpack the variables_dictionary and add them to the molecule prop record
+        # Initialize an empty dictionary for the variables
         variables_dictionary = dict()
-        try:
-            #psi4 computes charges in a.u., elementary charge
-            variables_dictionary["MULLIKEN_CHARGES"] = item.properties['mulliken charges'] * unit.e
-            variables_dictionary["LOWDIN_CHARGES"] = item.properties['lowdin charges'] * unit.e 
-            variables_dictionary["MBIS CHARGES"] = item.properties['mbis charges'] * unit.e
-            #psi4 grab the MBIS multipoless
-            variables_dictionary["MBIS DIPOLE"] = item.properties['mbis dipoles'] * unit.e * unit.bohr_radius                       
-            variables_dictionary["MBIS QUADRUPOLE"] =  item.properties['mbis quadrupoles'] * unit.e * unit.bohr_radius**2
-            variables_dictionary["MBIS OCTOPOLE"] = item.properties['mbis octupoles'] * unit.e * unit.bohr_radius**3
-            #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
-            #different indexes for dipole if dft vs hf method
-            variables_dictionary["DIPOLE"] = item.properties['scf dipole'] * unit.e * unit.bohr_radius
-            variables_dictionary["QUADRUPOLE"] = item.properties['scf quadrupole'] * unit.e * unit.bohr_radius**2
-            variables_dictionary["ALPHA_DENSITY"] = item.wavefunction.scf_density_a
-            variables_dictionary["BETA_DENSITY"] = item.wavefunction.scf_density_b
-            
-            return variables_dictionary
 
-        except KeyError:
-            print(f'failure with item {item.molecule} and method {item.specification.method} and basis{item.specification.basis}')
+        # Helper function to add a value, including None if value is not present
+        def add_value(key, value):
+            variables_dictionary[key] = value
 
-            return None
+        # Extract and add each variable, setting None if not present
+        add_value("MULLIKEN_CHARGES", item.properties.get('mulliken charges') * unit.e if 'mulliken charges' in item.properties else None)
+        add_value("LOWDIN_CHARGES", item.properties.get('lowdin charges') * unit.e if 'lowdin charges' in item.properties else None)
+        add_value("MBIS CHARGES", item.properties.get('mbis charges') * unit.e if 'mbis charges' in item.properties else None)
+        add_value("MBIS DIPOLE", item.properties.get('mbis dipoles') * unit.e * unit.bohr_radius if 'mbis dipoles' in item.properties else None)
+        add_value("MBIS QUADRUPOLE", item.properties.get('mbis quadrupoles') * unit.e * unit.bohr_radius**2 if 'mbis quadrupoles' in item.properties else None)
+        add_value("MBIS OCTOPOLE", item.properties.get('mbis octupoles') * unit.e * unit.bohr_radius**3 if 'mbis octupoles' in item.properties else None)
+        add_value("DIPOLE", item.properties.get('scf dipole') * unit.e * unit.bohr_radius if 'scf dipole' in item.properties else None)
+        add_value("QUADRUPOLE", item.properties.get('scf quadrupole') * unit.e * unit.bohr_radius**2 if 'scf quadrupole' in item.properties else None)
+        add_value("ALPHA_DENSITY", getattr(item.wavefunction, 'scf_density_a', None))
+        add_value("BETA_DENSITY", getattr(item.wavefunction, 'scf_density_b', None))
 
+        return variables_dictionary
     
     def check_if_esp_there(self, openff_molecule: Molecule, esp_settings: ESPSettings) -> bool:
         """
@@ -222,7 +272,7 @@ class QCArchiveToLocalDB:
             print(conformer)
             for entry in entries:
                 print(entry.conformer)
-                if numpy.array_equal(entry.conformer,conformer):
+                if np.array_equal(entry.conformer,conformer):
                     #check if method of conformer is present
                     return self.check_method(openff_molecule = openff_molecule, esp_settings = esp_settings)
                 #conformer not present

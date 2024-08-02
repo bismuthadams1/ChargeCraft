@@ -357,14 +357,14 @@ class DBConformerPropRecord(DBBase):
     esp_settings = relationship("DBESPSettings", uselist=False)
     esp_settings_id = Column(Integer, ForeignKey("esp_settings.id"), nullable=False)
 
-    mulliken_charges = Column(PickleType, nullable=False)
-    lowdin_charges = Column(PickleType, nullable=False)
-    mbis_charges  = Column(PickleType, nullable=False)
+    mulliken_charges = Column(PickleType, nullable=True)
+    lowdin_charges = Column(PickleType, nullable=True)
+    mbis_charges  = Column(PickleType, nullable=True)
     dipole = Column(PickleType, nullable=False)
     quadropole =  Column(PickleType, nullable=False)
-    mbis_dipole = Column(PickleType, nullable=False)
-    mbis_quadropole = Column(PickleType, nullable=False)
-    mbis_octopole = Column(PickleType, nullable=False)
+    mbis_dipole = Column(PickleType, nullable=True)
+    mbis_quadropole = Column(PickleType, nullable=True)
+    mbis_octopole = Column(PickleType, nullable=True)
     energy = Column(PickleType, nullable=False)
     charge_model_charges = Column(String, nullable=True) # Change JSONB to String
 
