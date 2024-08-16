@@ -10,6 +10,7 @@ from openff.recharge.esp.qcresults import reconstruct_density, compute_esp
 from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
 from qcelemental.models import Molecule as QCMolecule
 import numpy as np
+import psi4
 
 class QCArchiveToLocalDB:
 
@@ -166,6 +167,25 @@ class QCArchiveToLocalDB:
         #returns grid in Angstrom
         return grid
     
+    def compute_properties( qc_molecule: "qcelemental.models.Molecule",
+                            density: np.ndarray,
+                            esp_settings: ESPSettings,
+                           ) -> dict[str,np.ndarray]:
+        
+            psi4.core.be_quiet()
+
+            psi4_molecule = psi4.geometry(qc_molecule.to_string("psi4", "angstrom"))
+            psi4_molecule.reset_point_group("c1")
+
+            psi4_wavefunction = psi4.core.RHF(
+                psi4.core.Wavefunction.build(psi4_molecule, esp_settings.basis),
+                psi4.core.SuperFunctional(),
+            )
+
+            psi4_wavefunction.Da().copy(psi4.core.Matrix.from_array(density))
+
+            results = psi4.oeprop(psi4_wavefunction, "DIPOLE","QUADRUPOLE", )
+
     def dft_grid_settings(self, item: SinglepointRecord) -> DFTGridSettings | None:
         """Return grid settings based on SinglePointRecord value
 
@@ -192,45 +212,6 @@ class QCArchiveToLocalDB:
         else:
             return None
 
-    # def construct_variables_dictionary(self, item: SinglepointRecord) -> dict:
-    #     """Construct the variables dictionary from the SinglepointRecord
-
-    #     Parameters
-    #     ----------
-    #     item: SinglepointRecord
-    #         qcarchive record to pull down and produce esp from
-        
-    #     Returns
-    #     -------
-    #     dict
-    #         variables dictionary to be stored in MoleculePropStore
-
-    #     """
-
-    #     # Unpack the variables_dictionary and add them to the molecule prop record
-    #     variables_dictionary = dict()
-    #     try:
-    #         #psi4 computes charges in a.u., elementary charge
-    #         variables_dictionary["MULLIKEN_CHARGES"] = item.properties['mulliken charges'] * unit.e
-    #         variables_dictionary["LOWDIN_CHARGES"] = item.properties['lowdin charges'] * unit.e 
-    #         variables_dictionary["MBIS CHARGES"] = item.properties['mbis charges'] * unit.e
-    #         #psi4 grab the MBIS multipoless
-    #         variables_dictionary["MBIS DIPOLE"] = item.properties['mbis dipoles'] * unit.e * unit.bohr_radius                       
-    #         variables_dictionary["MBIS QUADRUPOLE"] =  item.properties['mbis quadrupoles'] * unit.e * unit.bohr_radius**2
-    #         variables_dictionary["MBIS OCTOPOLE"] = item.properties['mbis octupoles'] * unit.e * unit.bohr_radius**3
-    #         #psi4 computes n multipoles in a.u, in elementary charge * bohr radius**n
-    #         #different indexes for dipole if dft vs hf method
-    #         variables_dictionary["DIPOLE"] = item.properties['scf dipole'] * unit.e * unit.bohr_radius
-    #         variables_dictionary["QUADRUPOLE"] = item.properties['scf quadrupole'] * unit.e * unit.bohr_radius**2
-    #         variables_dictionary["ALPHA_DENSITY"] = item.wavefunction.scf_density_a
-    #         variables_dictionary["BETA_DENSITY"] = item.wavefunction.scf_density_b
-            
-    #         return variables_dictionary
-
-    #     except KeyError:
-    #         print(f'failure with item {item.molecule} and method {item.specification.method} and basis{item.specification.basis}')
-
-    #         return None
 
     def construct_variables_dictionary(self, item: SinglepointRecord) -> dict:
         """Construct the variables dictionary from the SinglepointRecord

@@ -1,14 +1,13 @@
 
-from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
+from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional, Union
 try:
  from pydantic import v1 as pydanticv1
  from pydantic.v1 import BaseModel,Field
  from typing import Any
-
 except Exception as e:
  from pydantic import BaseModel, Field
  from typing import Any
-
+ 
 from contextlib import contextmanager
 from sqlalchemy import create_engine, event, text
 import warnings
@@ -287,22 +286,34 @@ class MoleculePropStore:
     # def __init__(self, database_path: str = "prop-store.sqlite"):
     #     return super().__init__(database_path = database_path)
 
-    def __init__(self, database_path: str = "esp-store.sqlite"):
+    def __init__(self, database_path: str = "esp-store.sqlite", cache_size: Union[None,int] = None):
             """
 
             Parameters
             ----------
             database_path
                 The path to the SQLite database to store to and retrieve data from.
+            cache_size
+                The size in pages of the cache size of the db
             """
             self._database_url = f"sqlite:///{database_path}"
 
             self._engine = create_engine(self._database_url, echo=False, connect_args={'timeout': 15})
             DBBase.metadata.create_all(self._engine)
 
+            if cache_size:
+                @event.listens_for(self._engine, "connect")
+                def set_sqlite_pragma(dbapi_connection, connection_record):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute(f"PRAGMA cache_size = -{cache_size}")  # 20000 pages (~20MB), adjust based on your needs
+                    cursor.execute("PRAGMA synchronous = OFF")   # Improves speed but less safe
+                    cursor.execute("PRAGMA journal_mode = MEMORY")  # Use in-memory journaling
+                    cursor.close()
+
             # Enable WAL mode directly after engine creation
             with self._engine.connect() as conn:
                 conn.execute(text("PRAGMA journal_mode=WAL;"))
+            
 
             self._session_maker = sessionmaker(
                 autocommit=False, autoflush=False, bind=self._engine
@@ -352,17 +363,25 @@ class MoleculePropStore:
                     ddx_settings=None
                     if not db_conformer.ddx_settings
                     else DBDDXSettings.db_to_instance(db_conformer.ddx_settings)),
-                mulliken_charges = db_conformer.mulliken_charges,
-                lowdin_charges = db_conformer.lowdin_charges,
-                mbis_charges = db_conformer.mbis_charges,
+                mulliken_charges = None if not db_conformer.mulliken_charges 
+                                   else db_conformer.mulliken_charges,
+                lowdin_charges = None if not db_conformer.lowdin_charges
+                                 else  db_conformer.lowdin_charges,
+                mbis_charges = None if not db_conformer.mbis_charges
+                               else db_conformer.mbis_charges,
                 dipole = db_conformer.dipole,
                 quadropole = db_conformer.quadropole,
-                mbis_dipole= db_conformer.mbis_dipole,
-                mbis_quadropole= db_conformer.mbis_quadropole,
-                mbis_octopole= db_conformer.mbis_octopole,
+                mbis_dipole= None if not db_conformer.mbis_dipole
+                              else db_conformer.mbis_dipole,
+                mbis_quadropole= None if not db_conformer.mbis_quadropole
+                              else db_conformer.mbis_quadropole,
+                mbis_octopole= None if not db_conformer.mbis_octopole
+                              else db_conformer.mbis_octopole,
                 energy = db_conformer.energy,
-                alpha_density = db_conformer.alpha_density,
-                beta_density= db_conformer.beta_density,
+                alpha_density = None if not db_conformer.alpha_density
+                               else db_conformer.alpha_density,
+                beta_density= None if not db_conformer.beta_density
+                               else db_conformer.beta_density,
                 charge_model_charges = None
             )
             for db_record in db_records
@@ -396,45 +415,78 @@ class MoleculePropStore:
         else:
             db_record = DBMoleculePropRecord(smiles=smiles)
 
-        # noinspection PyTypeChecker
-        # noinspection PyUnresolvedReferences
-        db_record.conformers.extend(
-            DBConformerPropRecord(
-                tagged_smiles=record.tagged_smiles,
-                coordinates=record.conformer,
-                grid=record.grid_coordinates,
-                esp=record.esp,
-                field=record.electric_field,
-                grid_settings=DBGridSettings.unique(
-                    db, record.esp_settings.grid_settings
+        # Iterate over each record to check if it exists
+        for record in records:
+            existing_conformer = next(
+                (
+                    conformer for conformer in db_record.conformers
+                    if conformer.tagged_smiles == record.tagged_smiles
                 ),
-                pcm_settings=None
-                if not record.esp_settings.pcm_settings
-                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
-                ddx_settings=None 
-                if not record.esp_settings.ddx_settings
-                else  DBDDXSettings.unique(db, record.esp_settings.ddx_settings),
-                esp_settings = DBESPSettings.unique(db, record.esp_settings),
-                mulliken_charges = record.mulliken_charges,
-                lowdin_charges = record.lowdin_charges,
-                mbis_charges = record.mbis_charges,
-                dipole = record.dipole,
-                quadropole = record.quadropole,
-                mbis_dipole= record.mbis_dipole,
-                mbis_quadropole= record.mbis_quadropole,
-                mbis_octopole= record.mbis_octopole,
-                energy = record.energy,
-                alpha_density = record.alpha_density,
-                beta_density= record.beta_density,
-                charge_model_charges = None
+                None
             )
-            for record in records
-        )
+
+            if existing_conformer:
+                # Update the existing conformer record
+                existing_conformer.coordinates = record.conformer
+                existing_conformer.grid = record.grid_coordinates
+                existing_conformer.esp = record.esp
+                existing_conformer.field = record.electric_field
+                existing_conformer.grid_settings = DBGridSettings.unique(db, record.esp_settings.grid_settings)
+                existing_conformer.pcm_settings = None if not record.esp_settings.pcm_settings else DBPCMSettings.unique(db, record.esp_settings.pcm_settings)
+                existing_conformer.ddx_settings = None if not record.esp_settings.ddx_settings else DBDDXSettings.unique(db, record.esp_settings.ddx_settings)
+                existing_conformer.esp_settings = DBESPSettings.unique(db, record.esp_settings)
+                existing_conformer.mulliken_charges = record.mulliken_charges
+                existing_conformer.lowdin_charges = record.lowdin_charges
+                existing_conformer.mbis_charges = record.mbis_charges
+                existing_conformer.dipole = record.dipole
+                existing_conformer.quadropole = record.quadropole
+                existing_conformer.mbis_dipole = record.mbis_dipole
+                existing_conformer.mbis_quadropole = record.mbis_quadropole
+                existing_conformer.mbis_octopole = record.mbis_octopole
+                existing_conformer.energy = record.energy
+                existing_conformer.alpha_density = record.alpha_density
+                existing_conformer.beta_density = record.beta_density
+                existing_conformer.charge_model_charges = None
+            else:
+                # Add a new conformer record
+                db_record.conformers.append(
+                    DBConformerPropRecord(
+                        tagged_smiles=record.tagged_smiles,
+                        coordinates=record.conformer,
+                        grid=record.grid_coordinates,
+                        esp=record.esp,
+                        field=record.electric_field,
+                        grid_settings=DBGridSettings.unique(
+                            db, record.esp_settings.grid_settings
+                        ),
+                        pcm_settings=None
+                        if not record.esp_settings.pcm_settings
+                        else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
+                        ddx_settings=None 
+                        if not record.esp_settings.ddx_settings
+                        else  DBDDXSettings.unique(db, record.esp_settings.ddx_settings),
+                        esp_settings = DBESPSettings.unique(db, record.esp_settings),
+                        mulliken_charges = record.mulliken_charges,
+                        lowdin_charges = record.lowdin_charges,
+                        mbis_charges = record.mbis_charges,
+                        dipole = record.dipole,
+                        quadropole = record.quadropole,
+                        mbis_dipole= record.mbis_dipole,
+                        mbis_quadropole= record.mbis_quadropole,
+                        mbis_octopole= record.mbis_octopole,
+                        energy = record.energy,
+                        alpha_density = record.alpha_density,
+                        beta_density= record.beta_density,
+                        charge_model_charges = None
+                    )
+                )
 
         if existing_db_molecule is None:
             db.add(db_record)
 
         return db_record
+
+
 
     @classmethod
     @functools.lru_cache(10000)
