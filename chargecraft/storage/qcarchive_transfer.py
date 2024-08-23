@@ -166,7 +166,7 @@ class QCArchiveToLocalDB:
                 variables_dictionary= variables_dictionary, 
                 energy = E
             )
-            if not return_store:
+            if return_store is False:
                 self.records.append(record)
                 # if we append here we will get unique constraints issues
                 self.prop_data_store.store(self.records[-1])
@@ -174,7 +174,7 @@ class QCArchiveToLocalDB:
                 return record
 
     def process_item(self, 
-                    item, 
+                    item: SinglepointRecord, 
                     exclude_keys: list = None,
                     qm_esp: bool = False,
                     compute_properties: bool = False,
@@ -273,6 +273,7 @@ class QCArchiveToLocalDB:
                 esp_settings=esp_settings,
                 grid=grid
             )
+            print("ESP computed")
         else:
             esp = np.array(self.esp_calculator.assign_esp(
                 monopoles=variables_dictionary['MBIS CHARGES'],
@@ -286,7 +287,7 @@ class QCArchiveToLocalDB:
             electric_field = np.array([]) * (unit.hartree / (unit.bohr * unit.e))
 
         E = item.properties['current energy']
-
+        print("Producing Record:")
         record = MoleculePropRecord.from_molecule(
             molecule=openff_molecule,  
             conformer=openff_conformer,
@@ -302,6 +303,7 @@ class QCArchiveToLocalDB:
             self.records.append(record)
             self.prop_data_store.store(self.records[-1])
         else:
+            print('returning records!')
             return record
 
 
@@ -365,7 +367,25 @@ class QCArchiveToLocalDB:
             
             return variables_dictionary
             
+    def compute_properties_2(self,
+                           qc_molecule: "qcelemental.models.Molecule",
+                            density: np.ndarray,
+                            esp_settings: ESPSettings,
+                           ) -> dict[str,np.ndarray]:
             
+            psi4.core.be_quiet()
+
+            psi4_molecule = psi4.geometry(qc_molecule.to_string("psi4", "angstrom"))
+            psi4_molecule.reset_point_group("c1")
+
+            psi4_wavefunction = psi4.core.RHF(
+                psi4.core.Wavefunction.build(psi4_molecule, esp_settings.basis),
+                psi4.core.SuperFunctional(),
+            )
+            wavefunction = psi4_wavefunction.Da().copy(psi4.core.Matrix.from_array(density))
+ 
+            
+
     def dft_grid_settings(self, item: SinglepointRecord) -> DFTGridSettings | None:
         """Return grid settings based on SinglePointRecord value
 

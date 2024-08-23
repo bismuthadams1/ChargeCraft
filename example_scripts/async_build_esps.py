@@ -26,7 +26,7 @@ def main():
 
 
     with ProcessPoolExecutor(
-        max_workers=16, mp_context=get_context("spawn")
+        max_workers=2, mp_context=get_context("spawn")
     ) as pool:
 
         futures = [
@@ -36,12 +36,12 @@ def main():
                                       qm_esp = True,
                                       compute_properties = True,
                                       return_store = True
-                                      ),
+                                      )
             )
             for molecule in molecules
         ]
         #to avoid simultaneous writing to the db, wait for each calculation to finish then write
-        for future in tqdm(as_completed(futures), total=len(futures)):
+        for future in tqdm(as_completed(futures, timeout=300), total=len(futures)):
             esp_record = future.result()
             prop_store.store(esp_record)
 
