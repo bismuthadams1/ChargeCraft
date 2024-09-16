@@ -11,7 +11,8 @@ from openff.toolkit.topology import Molecule
 from openff.units import unit
 
 # prop_store = MoleculePropStore(database_path="/properties_store.db")
-prop_store = MoleculePropStore(database_path='/Users/localadmin/Documents/projects/Comparison_with_QM/RinnickerTest/ESP_check/properties_store.db')
+# prop_store = MoleculePropStore(database_path='/Users/localadmin/Documents/projects/Comparison_with_QM/RinnickerTest/ESP_check/properties_store.db')
+prop_store = MoleculePropStore('/Users/localadmin/Documents/molesp_test/ESP_rebuilt.db')
 vs = VirtualSites()
 
 for smiles in prop_store.list():

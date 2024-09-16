@@ -1,0 +1,29 @@
+name: openff-nagl-test
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - pip
+  - click
+  - click-option-group
+  - tqdm
+  - rich
+  - openff-recharge
+  - openff-toolkit-base[version='>=0.11.1']
+  - openff-units
+  - pydantic[version='<2']
+  - rdkit
+  - scipy
+  - pyarrow
+  - pytorch[version='>=2.0']
+  - pytorch-lightning
+  - dask-jobqueue
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - codecov
+  - qubekit
+  - ca-certificates
+  - certifi
+  - openssl
+prefix: /Users/localadmin/miniforge3/envs/openff-nagl-test
