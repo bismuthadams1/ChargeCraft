@@ -1,6 +1,7 @@
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.units import unit
+from openff.recharge.grids import LatticeGridSettings
 from chargecraft.storage.data_classes import ESPSettings
 from chargecraft.storage.storage import MoleculePropStore, MoleculePropRecord
 import numpy as np
@@ -68,86 +69,138 @@ def dummy_electrostatics_2():
 
 def create_mock_molecule_prop_record_1():
         #construct creates a record without validation 
-        mock_record_1 = MoleculePropRecord.construct(
+        mock_record_1 = MoleculePropRecord(
+        
         # Set values for the first record
-        tagged_smiles = "[O:2][H:1][H:3]"
-        conformer = [
+        tagged_smiles = "[H:2][O:1][H:3]",
+        conformer = np.array(
+        [
             [-3.31754922, 1.50267657, 0.0],
             [-2.34754922, 1.50267657, 0.0],
             [-3.64087903, 2.31550273, -0.41913179]
-        ]
-        grid_coordinates = [
+        ]),
+        grid_coordinates = np.array(
+        [
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1.0]
-        ]
-        variables_dictionary = {
-            "MULLIKEN_CHARGES": [-0.3, 0.1, 0.2],  
-            "LOWDIN_CHARGES": [-0.2, 0.0, 0.2],    
-            "MBIS CHARGES": [-0.1, 0.1, 0.0],      
-            "DIPOLE": [1.1, 0.5, 0.5],            
-            "QUADRUPOLE": [1.2, 0.4, 0.4],        
-            "MBIS DIPOLE": [1.3, 0.3, 0.3],       
-            "MBIS QUADRUPOLE": [1.4, 0.2, 0.2],   
-            "MBIS OCTOPOLE": [1.5, 0.1, 0.1],     
-            "ALPHA_DENSITY": [[0.0, 0.1], [0.1, 0.0]],     
-            "BETA_DENSITY": [[0.1, 0.0], [0.0, 0.1]]       
-        }
-        
-        energy = -75.0
-        charge_model_charges = None
+        ]),
+        esp_settings= ESPSettings(
+            grid_settings = LatticeGridSettings() 
+        ),
+        esp = np.array([1,2,3,4,5]),
+        electric_field= np.array(
+            [1,2,3,4,5]
+        ),
+        mulliken_charges=np.array([1,2,3,4,5,6]),
+        lowdin_charges=np.array([1,2,2,3,4,5,6]),
+        mbis_charges=np.array([1,2,4,5,6,7]),
+        dipole=np.array([1,2,3,4,5,6]),
+        quadropole=np.array([1,2,3,4,5,6]),
+        mbis_dipole=np.array([1,2,3,4,5,6]),
+        mbis_quadropole = np.array([1,2,3,5,6,7]),
+        mbis_octopole=np.array([1,2,4,5,6]),
+        alpha_density=np.array([1,2,3,4,5]),
+        beta_density=np.array([1,2,3,3,5]),
+        energy = np.array(-75.0),
+        charge_model_charges = None,
         )
         return mock_record_1
 
 def create_mock_molecule_prop_record_2():
-    with patch("chargecraft.storage.storage.MoleculePropRecord.__init__", return_value=None):
-        mock_record_2 = MoleculePropRecord()
-        mock_record_2.tagged_smiles = "[O:2][H:1][H:3]"
-        mock_record_2.conformer = [
+        #construct creates a record without validation 
+        mock_record_2 = MoleculePropRecord(
+        
+        # Set values for the first record
+        tagged_smiles = "[H:2][O:1][H:3]",
+        conformer = np.array([
             [-3.31754922, 1.0, 0.0],
             [-2.34754922, 1.0, 0.0],
             [-3.64087903, 2.0, -0.41913179]
-        ]
-        mock_record_2.grid_coordinates = [
-            [1.1, 0.0, 0.0],
-            [0.0, 1.1, 0.0],
-            [0.0, 0.0, 1.1]
-        ]
-        # Set variables_dictionary directly within the mock record
-        mock_record_2.variables_dictionary = {
-            "MULLIKEN_CHARGES": [-0.4, 0.2, 0.3],  
-            "LOWDIN_CHARGES": [-0.3, 0.1, 0.3],    
-            "MBIS CHARGES": [-0.2, 0.2, 0.1],      
-            "DIPOLE": [1.2, 0.6, 0.6],            
-            "QUADRUPOLE": [1.3, 0.5, 0.5],        
-            "MBIS DIPOLE": [1.4, 0.4, 0.4],       
-            "MBIS QUADRUPOLE": [1.5, 0.3, 0.3],   
-            "MBIS OCTOPOLE": [1.6, 0.2, 0.2],     
-            "ALPHA_DENSITY": [[0.1, 0.0], [0.0, 0.1]],     
-            "BETA_DENSITY": [[0.0, 0.1], [0.1, 0.0]]       
-        }
-        
-        mock_record_2.energy = -76.0
-        mock_record_2.charge_model_charges = None
-        
+        ]),
+        grid_coordinates = np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0]
+        ]),
+        esp_settings= ESPSettings(
+            grid_settings = LatticeGridSettings() 
+        ),
+        esp = np.array([1,2,3,4,5]),
+        electric_field= np.array(
+            [1,2,3,4,5]
+        ),
+        mulliken_charges=np.array([1,2,3,4,5,6]),
+        lowdin_charges=np.array([1,2,2,3,4,5,6]),
+        mbis_charges=np.array([1,2,4,5,6,7]),
+        dipole=np.array([1,2,3,4,5,6]),
+        quadropole=np.array([1,2,3,4,5,6]),
+        mbis_dipole=np.array([1,2,3,4,5,6]),
+        mbis_quadropole = np.array([1,2,3,5,6,7]),
+        mbis_octopole=np.array([1,2,4,5,6]),
+        alpha_density=np.array([1,2,3,4,5]),
+        beta_density=np.array([1,2,3,3,5]),
+        energy = np.array(-75.0),
+        charge_model_charges = None,
+        )
         return mock_record_2
 
-# def test_create_prop_record(tmpdir):
-#     prop_store = MoleculePropStore(tmpdir + "test_esp.db")
-#     #molecule 1  
-#     prop_record_1 = MoleculePropRecord(
+def create_mock_molecule_prop_record_3():
+        #construct creates a record without validation 
+        mock_record_3 = MoleculePropRecord(
         
-        
-#     )
+        # Set values for the first record
+        tagged_smiles = "[H:2][O:1][H:3]",
+        conformer = np.array([
+            [-3.31754922, 1.0, 0.0],
+            [-2.34754922, 1.0, 0.0],
+            [-3.64087903, 2.0, -0.41913179]
+        ]),
+        grid_coordinates = np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0]
+        ]),
+        esp_settings= ESPSettings(
+            grid_settings = LatticeGridSettings() 
+        ),
+        esp = np.array([1,2,3,5]),
+        electric_field= np.array(
+            [1,2,3,4,5]
+        ),
+        mulliken_charges=np.array([1,2,3,4,5,6]),
+        lowdin_charges=np.array([1,2,2,3,4,5,6]),
+        mbis_charges=np.array([1,2,4,5,6,7]),
+        dipole=np.array([1,2,3,4,5,6]),
+        quadropole=np.array([1,2,3,4,5,6]),
+        mbis_dipole=np.array([1,2,3,4,5,6]),
+        mbis_quadropole = np.array([1,2,3,5,6,7]),
+        mbis_octopole=np.array([1,2,4,5,6]),
+        alpha_density=np.array([1,2,3,4,5]),
+        beta_density=np.array([1,2,3,3,5]),
+        energy = np.array(-75.0),
+        charge_model_charges = None,
+        )
+        return mock_record_3
 
-def test_store_functionality(): #tmpdir
-    prop_store = MoleculePropStore("test_esp.db")
+def test_store_functionality(tmpdir): #tmpdir
+    prop_store = MoleculePropStore(f"{tmpdir}/test_esp.db")
     #molecule 1  
-    records = [create_mock_molecule_prop_record_1(), create_mock_molecule_prop_record_2]
+    # records = [ create_mock_molecule_prop_record_2()] #create_mock_molecule_prop_record_1(),
+    mocked_prop_record_1 = create_mock_molecule_prop_record_1()
+    #this has a slightly different geometry
+    mocked_prop_record_2 = create_mock_molecule_prop_record_2()
+    #this has a different esp length
+    mocked_prop_record_3 = create_mock_molecule_prop_record_3()
+
+    records = [mocked_prop_record_1, mocked_prop_record_2, mocked_prop_record_3] #create_mock_molecule_prop_record_1(),
+
     prop_store.store(*records)
     results = prop_store.retrieve(smiles="O")
     print(results)
-    assert len(results) == 2
+    assert len(results) == 3
 
-if __name__ == "__main__":
-    test_store_functionality()
+# if __name__ == "__main__":
+#     test_store_functionality()
