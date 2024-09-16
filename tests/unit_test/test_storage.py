@@ -184,23 +184,36 @@ def create_mock_molecule_prop_record_3():
         charge_model_charges = None,
         )
         return mock_record_3
-
-def test_store_functionality(tmpdir): #tmpdir
-    prop_store = MoleculePropStore(f"{tmpdir}/test_esp.db")
+    
+def prepare_records_suite():
     #molecule 1  
-    # records = [ create_mock_molecule_prop_record_2()] #create_mock_molecule_prop_record_1(),
     mocked_prop_record_1 = create_mock_molecule_prop_record_1()
     #this has a slightly different geometry
     mocked_prop_record_2 = create_mock_molecule_prop_record_2()
     #this has a different esp length
     mocked_prop_record_3 = create_mock_molecule_prop_record_3()
+    records = [mocked_prop_record_1, mocked_prop_record_2, mocked_prop_record_3] 
+    return records
+    
+def test_store_functionality(tmpdir): 
+    prop_store = MoleculePropStore(f"{tmpdir}/test_esp.db")
 
-    records = [mocked_prop_record_1, mocked_prop_record_2, mocked_prop_record_3] #create_mock_molecule_prop_record_1(),
+    records = prepare_records_suite()
 
     prop_store.store(*records)
     results = prop_store.retrieve(smiles="O")
-    print(results)
+    
     assert len(results) == 3
 
-# if __name__ == "__main__":
-#     test_store_functionality()
+def test_store_in_loop(tmpdir):
+    prop_store = MoleculePropStore(f"{tmpdir}/test_esp_2.db")
+
+    records = prepare_records_suite()
+
+    for record in records:    
+        prop_store.store(record)
+    
+    results = prop_store.retrieve(smiles="O")
+    
+    assert len(results) == 3
+
