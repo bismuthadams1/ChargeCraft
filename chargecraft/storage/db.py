@@ -2,6 +2,7 @@
 import abc
 import math
 from typing import TypeVar
+import numpy as np
 
 from sqlalchemy import (
     Boolean,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     Float,
+    TypeDecorator
 )
 from sqlalchemy.orm import Query, Session, relationship, declarative_base
 from chargecraft.storage.data_classes import DDXSettings, ESPSettings, PCMSettings
@@ -82,6 +84,13 @@ class _UniqueMixin:
 
         cache[key] = existing_instance
         return existing_instance
+
+#custom numpy type for numpy arrays
+class NumpyType(TypeDecorator):
+    impl = PickleType
+
+    def compare_values(self, x, y):
+        return np.array_equal(x, y)
 
 
 class DBGridSettings(_UniqueMixin, DBBase):
@@ -342,11 +351,11 @@ class DBConformerPropRecord(DBBase):
 
     tagged_smiles = Column(String, nullable=False)
 
-    coordinates = Column(PickleType, nullable=False)
+    coordinates = Column(NumpyType, nullable=False)
 
-    grid = Column(PickleType, nullable=False)
-    esp = Column(PickleType, nullable=False)
-    field = Column(PickleType, nullable=True)
+    grid = Column(NumpyType, nullable=False)
+    esp = Column(NumpyType, nullable=False)
+    field = Column(NumpyType, nullable=True)
 
     grid_settings = relationship("DBGridSettings", uselist=False)
     grid_settings_id = Column(Integer, ForeignKey("grid_settings.id"), nullable=False)
@@ -357,22 +366,22 @@ class DBConformerPropRecord(DBBase):
     esp_settings = relationship("DBESPSettings", uselist=False)
     esp_settings_id = Column(Integer, ForeignKey("esp_settings.id"), nullable=False)
 
-    mulliken_charges = Column(PickleType, nullable=True)
-    lowdin_charges = Column(PickleType, nullable=True)
-    mbis_charges  = Column(PickleType, nullable=True)
-    dipole = Column(PickleType, nullable=False)
-    quadropole =  Column(PickleType, nullable=False)
-    mbis_dipole = Column(PickleType, nullable=True)
-    mbis_quadropole = Column(PickleType, nullable=True)
-    mbis_octopole = Column(PickleType, nullable=True)
+    mulliken_charges = Column(NumpyType, nullable=True)
+    lowdin_charges = Column(NumpyType, nullable=True)
+    mbis_charges  = Column(NumpyType, nullable=True)
+    dipole = Column(NumpyType, nullable=False)
+    quadropole =  Column(NumpyType, nullable=False)
+    mbis_dipole = Column(NumpyType, nullable=True)
+    mbis_quadropole = Column(NumpyType, nullable=True)
+    mbis_octopole = Column(NumpyType, nullable=True)
     energy = Column(PickleType, nullable=False)
     charge_model_charges = Column(String, nullable=True) # Change JSONB to String
 
     ddx_settings = relationship("DBDDXSettings", uselist = False)
     ddx_settings_id = Column(Integer, ForeignKey("ddx_settings.id"), nullable = True)
 
-    alpha_density = Column(PickleType, nullable=True)
-    beta_density = Column(PickleType, nullable=True)
+    alpha_density = Column(NumpyType, nullable=True)
+    beta_density = Column(NumpyType, nullable=True)
 
 
 
