@@ -34,7 +34,7 @@ from chargecraft.storage.db import (
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from collections import defaultdict
-from sqlalchemy.orm import Session, sessionmaker, contains_eager
+from sqlalchemy.orm import Session, sessionmaker, contains_eager, joinedload
 from typing import Literal
 import json
 
@@ -344,6 +344,14 @@ class MoleculePropStore:
         -------
             The mapped data models.
         """
+        def is_non_empty(value):
+            if value is None:
+                return False
+            if isinstance(value, (tuple, list, np.ndarray)):     
+                return len(value) > 0
+            return True
+
+    
         return [
             MoleculePropRecord(
                 tagged_smiles=db_conformer.tagged_smiles,
@@ -363,31 +371,22 @@ class MoleculePropStore:
                     ddx_settings=None
                     if not db_conformer.ddx_settings
                     else DBDDXSettings.db_to_instance(db_conformer.ddx_settings)),
-                mulliken_charges = None if not db_conformer.mulliken_charges 
-                                   else db_conformer.mulliken_charges,
-                lowdin_charges = None if not db_conformer.lowdin_charges
-                                 else  db_conformer.lowdin_charges,
-                mbis_charges = None if not db_conformer.mbis_charges
-                               else db_conformer.mbis_charges,
+                mulliken_charges = None if not is_non_empty(db_conformer.mulliken_charges) else db_conformer.mulliken_charges,
+                lowdin_charges = None if not is_non_empty(db_conformer.lowdin_charges) else db_conformer.lowdin_charges,
+                mbis_charges = None if not is_non_empty(db_conformer.mbis_charges) else db_conformer.mbis_charges,
                 dipole = db_conformer.dipole,
                 quadropole = db_conformer.quadropole,
-                mbis_dipole= None if not db_conformer.mbis_dipole
-                              else db_conformer.mbis_dipole,
-                mbis_quadropole= None if not db_conformer.mbis_quadropole
-                              else db_conformer.mbis_quadropole,
-                mbis_octopole= None if not db_conformer.mbis_octopole
-                              else db_conformer.mbis_octopole,
+                mbis_dipole = None if not is_non_empty(db_conformer.mbis_dipole) else db_conformer.mbis_dipole,
+                mbis_quadropole = None if not is_non_empty(db_conformer.mbis_quadropole) else db_conformer.mbis_quadropole,
+                mbis_octopole = None if not is_non_empty(db_conformer.mbis_octopole) else db_conformer.mbis_octopole,
                 energy = db_conformer.energy,
-                alpha_density = None if not db_conformer.alpha_density
-                               else db_conformer.alpha_density,
-                beta_density= None if not db_conformer.beta_density
-                               else db_conformer.beta_density,
-                charge_model_charges = None
+                alpha_density = None if not is_non_empty(db_conformer.alpha_density) else db_conformer.alpha_density,
+                beta_density = None if not is_non_empty(db_conformer.beta_density) else db_conformer.beta_density,
+                charge_model_charges = None,
             )
             for db_record in db_records
             for db_conformer in db_record.conformers
         ]
-
 
     @classmethod
     def _store_smiles_records(
@@ -414,18 +413,24 @@ class MoleculePropStore:
             db_record = existing_db_molecule
         else:
             db_record = DBMoleculePropRecord(smiles=smiles)
-
         # Iterate over each record to check if it exists
         for record in records:
-            existing_conformer = next(
-                (
-                    conformer for conformer in db_record.conformers
-                    if conformer.tagged_smiles == record.tagged_smiles
-                ),
-                None
-            )
-
+            #WARNING: THIS HAS BEEN HACKED FOR SPECIFIC USE CASE, FIX WHEN DONE
+            # existing_conformer = next(
+            #     confs := (
+            #         conformer for conformer in db_record.conformers
+            #         if conformer.tagged_smiles == record.tagged_smiles
+            #     ),
+            #     None
+            # )
+            # print('conformers present:')
+            # print(confs)
+            # print('storing conformer:')
+            # print(record.conformer)s
+            #WARNING: REMOVE THIS
+            existing_conformer = False
             if existing_conformer:
+                print('existing conformer, update this one')
                 # Update the existing conformer record
                 existing_conformer.coordinates = record.conformer
                 existing_conformer.grid = record.grid_coordinates
@@ -448,6 +453,7 @@ class MoleculePropStore:
                 existing_conformer.beta_density = record.beta_density
                 existing_conformer.charge_model_charges = None
             else:
+                print('creating new conformer row')
                 # Add a new conformer record
                 db_record.conformers.append(
                     DBConformerPropRecord(
@@ -541,6 +547,30 @@ class MoleculePropStore:
         with self._get_session() as db:
             for smiles in records_by_smiles:
                 self._store_smiles_records(db, smiles, records_by_smiles[smiles])            
+
+    def stream_records(self, batch_size: int = 1000) -> Iterator[MoleculePropRecord]:
+        """Streams MoleculePropRecords from the database in batches.
+
+        Parameters
+        ----------
+        batch_size : int
+            The number of records to fetch per batch.
+
+        Yields
+        ------
+        MoleculePropRecord
+            An iterator over MoleculePropRecord instances.
+        """
+        with self._get_session() as session:
+            query = session.query(DBMoleculePropRecord).options(
+                joinedload(DBMoleculePropRecord.conformers)
+            )
+            query = query.yield_per(batch_size)
+            for db_record in query:
+                # Convert DB record to MoleculePropRecord
+                models = self._db_records_to_model([db_record])
+                for model in models:
+                    yield model
 
     def store_partial(self, 
                     smiles: str, 

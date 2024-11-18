@@ -13,6 +13,7 @@ from qcelemental.models import Molecule as QCMolecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationInput, QCInputSpecification
 from qcelemental import constants
+import traceback
 import copy
 import numpy as np
 from chargecraft.globals import GlobalConfig
@@ -271,6 +272,8 @@ class PropGenerator:
                 #if this conformer after a few attempts (contained in _esp_generator_wrapper function) the move to the next conformer.
                 print(f'properties failure with: {self.esp_settings.method}/{self.esp_settings.basis} and pcm {self.esp_settings.pcm_settings} and ddx {self.esp_settings.ddx_settings} ')
                 print(E)
+                print('traceback:')
+                print(traceback.format_exc())  # This will print the full traceback as a string
                 continue
             
             record = MoleculePropRecord.from_molecule(

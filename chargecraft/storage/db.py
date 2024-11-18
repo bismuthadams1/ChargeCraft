@@ -374,7 +374,7 @@ class DBConformerPropRecord(DBBase):
     mbis_dipole = Column(NumpyType, nullable=True)
     mbis_quadropole = Column(NumpyType, nullable=True)
     mbis_octopole = Column(NumpyType, nullable=True)
-    energy = Column(PickleType, nullable=False)
+    energy = Column(NumpyType, nullable=False)
     charge_model_charges = Column(String, nullable=True) # Change JSONB to String
 
     ddx_settings = relationship("DBDDXSettings", uselist = False)

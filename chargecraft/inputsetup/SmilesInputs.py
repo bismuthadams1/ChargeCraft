@@ -4,7 +4,6 @@ import os
 
 cwd = os.getcwd()
 
-
 class ReadInput:
     """
     Read and return SMILES input as list of strings
