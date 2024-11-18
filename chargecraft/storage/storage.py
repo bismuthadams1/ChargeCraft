@@ -34,7 +34,7 @@ from chargecraft.storage.db import (
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from collections import defaultdict
-from sqlalchemy.orm import Session, sessionmaker, contains_eager, joinedload
+from sqlalchemy.orm import Session, sessionmaker, contains_eager, selectinload
 from typing import Literal
 import json
 
@@ -563,10 +563,18 @@ class MoleculePropStore:
         """
         with self._get_session() as session:
             query = session.query(DBMoleculePropRecord).options(
-                joinedload(DBMoleculePropRecord.conformers)
+                selectinload(DBMoleculePropRecord.conformers)
             )
             query = query.yield_per(batch_size)
+            query = query.enable_eagerloads(False)  # Disable default eager loads to prevent conflicts
+
             for db_record in query:
+                # Manually load the conformers using selectinload
+                session.expire(db_record, ['conformers'])
+                session.query(DBMoleculePropRecord).options(
+                    selectinload(DBMoleculePropRecord.conformers)
+                ).populate_existing().filter_by(smiles=db_record.smiles).first()
+
                 # Convert DB record to MoleculePropRecord
                 models = self._db_records_to_model([db_record])
                 for model in models:
