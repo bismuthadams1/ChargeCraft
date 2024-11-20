@@ -1,14 +1,13 @@
 
-from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
+from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional, Union
 try:
  from pydantic import v1 as pydanticv1
  from pydantic.v1 import BaseModel,Field
  from typing import Any
-
 except Exception as e:
  from pydantic import BaseModel, Field
  from typing import Any
-
+ 
 from contextlib import contextmanager
 from sqlalchemy import create_engine, event, text
 import warnings
@@ -45,100 +44,105 @@ if TYPE_CHECKING:
 else:
     from openff.recharge.utilities.pydantic import Array, wrapped_array_validator
 
-
 class MoleculePropRecord(BaseModel):
-        """An extension of the MoleculeESPRecord class to store ESPs, partial charges and quadropoles. 
-        """
+        """An extension of the MoleculeESPRecord class to store ESPs, partial charges and quadrupoles."""
 
         tagged_smiles: str = Field(
-        ...,
-        description="The tagged SMILES patterns (SMARTS) which encodes both the "
-        "molecule stored in this record, a map between the atoms and the molecule and "
-        "their coordinates.",
+            ...,
+            description="The tagged SMILES patterns (SMARTS) which encodes both the "
+                        "molecule stored in this record, a map between the atoms and the molecule and "
+                        "their coordinates.",
         )
 
         conformer: Array[float] = Field(
             ...,
             description="The coordinates [Angstrom] of this conformer with "
-            "shape=(n_atoms, 3).",
+                        "shape=(n_atoms, 3).",
         )
 
         grid_coordinates: Array[float] = Field(
             ...,
             description="The grid coordinates [Angstrom] which the ESP was calculated on "
-            "with shape=(n_grid_points, 3).",
+                        "with shape=(n_grid_points, 3).",
         )
+
         esp: Array[float] = Field(
             ...,
             description="The value of the ESP [Hartree / e] at each of the grid "
-            "coordinates with shape=(n_grid_points, 1).",
+                        "coordinates with shape=(n_grid_points, 1).",
         )
+
         electric_field: Optional[Array[float]] = Field(
-            ...,
+            None,
             description="The value of the electric field [Hartree / (e . a0)] at each of "
-            "the grid coordinates with shape=(n_grid_points, 3).",
+                        "the grid coordinates with shape=(n_grid_points, 3).",
         )
 
         esp_settings: ESPSettings = Field(
             ..., description="The settings used to generate the ESP stored in this record."
         )
 
-        _validate_conformer = wrapped_array_validator("conformer", unit.angstrom)
-        _validate_grid = wrapped_array_validator("grid_coordinates", unit.angstrom)
-
-        _validate_esp = wrapped_array_validator("esp", unit.hartree / unit.e)
-        _validate_field = wrapped_array_validator(
-            "electric_field", unit.hartree / (unit.bohr * unit.e)
+        mulliken_charges: Optional[Array[float]] = Field(
+            None,
+            description="The Mulliken charges associated with each atom in the conformer",
         )
 
-        #create a series of statric variables
-        mulliken_charges: Array[float] = Field(...,
-        description="The muliken charges associated with each atom in the conformer",
+        lowdin_charges: Optional[Array[float]] = Field(
+            None,
+            description="The Löwdin charges associated with each atom in the conformer",
         )
 
-        lowdin_charges: Array[float] = Field(...,
-        description="The lowdin charges associated with each atom in the conformer",
+        mbis_charges: Optional[Array[float]] = Field(
+            None,
+            description="The MBIS charges associated with each atom in the conformer",
         )
 
-        mbis_charges: Array[float] = Field(...,
-        description="The lowdin charges associated with each atom in the conformer",
+        dipole: Optional[Array[float]] = Field(
+            None,
+            description="The molecular dipole",
         )
 
-        dipole: Array[float] = Field(...,
-        description="The molecular dipole",
+        quadropole: Optional[Array[float]] = Field(
+            None,
+            description="Molecular quadrupole",
         )
 
-        quadropole: Array[float] = Field(...,
-        description= "molecular quadropole",
+        mbis_dipole: Optional[Array[float]] = Field(
+            None,
+            description="MBIS dipole",
         )
 
-        mbis_dipole: Array[float] = Field(...,
-        description= "mbis dipole",
+        mbis_quadropole: Optional[Array[float]] = Field(
+            None,
+            description="MBIS quadrupole",
         )
 
-        mbis_quadropole: Array[float] = Field(...,
-        description= "mbis quadropole",
+        mbis_octopole: Optional[Array[float]] = Field(
+            None,
+            description="MBIS octopole",
         )
 
-        mbis_octopole: Array[float] = Field(...,
-        description= "mbis octopole",
+        energy: Optional[Array[float]] = Field(
+            None,
+            description="Energy associated with the calculation",
         )
 
-        energy: Array[float] = Field(...,
-        description= "energy associated with the calculation"                             
+        charge_model_charges: Optional[str] = Field(
+            None,
+            description="Partial charges in JSON",
         )
 
-        charge_model_charges: Optional[str] = Field(...,
-        description= "partial charges in JSON"
-        )
-        alpha_density: Optional[Any] = Field(...,
-        description= "Alpha density matrix"                                    
+        alpha_density: Optional[Any] = Field(
+            None,
+            description="Alpha density matrix",
         )
 
-        beta_density: Optional[Any] = Field(...,
-        description= "Beta density matrix"
+        beta_density: Optional[Any] = Field(
+            None,
+            description="Beta density matrix",
         )
 
+        # Properties for unit conversion (assuming some functions or methods exist)
         @property
         def conformer_quantity(self) -> unit.Quantity:
             return self.conformer * unit.angstrom
@@ -166,34 +170,34 @@ class MoleculePropRecord(BaseModel):
         @property
         def mbis_charges_quantity(self) -> unit.Quantity:
             return self.mbis_charges * unit.e
-        
+
         @property
         def dipole_quantity(self) -> unit.Quantity:
             return self.dipole * unit.e * unit.bohr_radius
-        
+
         @property
         def quadropole_quantity(self) -> unit.Quantity:
             return self.quadropole * unit.e * unit.bohr_radius**2
-        
+
         @property
         def mbis_dipole_quantity(self) -> unit.Quantity:
             return self.mbis_dipole * unit.e * unit.bohr_radius
-        
+
         @property
         def mbis_quadropole_quantity(self) -> unit.Quantity:
-            return self.mbis_quadropole * unit.e * unit.bohr_radius ** 2 
+            return self.mbis_quadropole * unit.e * unit.bohr_radius ** 2
 
         @property
         def mbis_octopole_quantity(self) -> unit.Quantity:
-            return self.mbis_octopole * unit.e * unit.bohr_radius ** 3       
-        
+            return self.mbis_octopole * unit.e * unit.bohr_radius ** 3
+
         @property
         def energy_quantity(self) -> unit.Quantity:
-            return self.energy * unit.hartree 
-        
+            return self.energy * unit.hartree
+
         @property
         def charge_model_json(self) -> Dict[str, Array]:
-            return json.load(self.charge_model_charges)
+            return json.loads(self.charge_model_charges) if self.charge_model_charges else {}
 
         @classmethod
         def from_molecule(
@@ -282,22 +286,34 @@ class MoleculePropStore:
     # def __init__(self, database_path: str = "prop-store.sqlite"):
     #     return super().__init__(database_path = database_path)
 
-    def __init__(self, database_path: str = "esp-store.sqlite"):
+    def __init__(self, database_path: str = "esp-store.sqlite", cache_size: Union[None,int] = None):
             """
 
             Parameters
             ----------
             database_path
                 The path to the SQLite database to store to and retrieve data from.
+            cache_size
+                The size in pages of the cache size of the db
             """
             self._database_url = f"sqlite:///{database_path}"
 
             self._engine = create_engine(self._database_url, echo=False, connect_args={'timeout': 15})
             DBBase.metadata.create_all(self._engine)
 
+            if cache_size:
+                @event.listens_for(self._engine, "connect")
+                def set_sqlite_pragma(dbapi_connection, connection_record):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute(f"PRAGMA cache_size = -{cache_size}")  # 20000 pages (~20MB), adjust based on your needs
+                    cursor.execute("PRAGMA synchronous = OFF")   # Improves speed but less safe
+                    cursor.execute("PRAGMA journal_mode = MEMORY")  # Use in-memory journaling
+                    cursor.close()
+
             # Enable WAL mode directly after engine creation
             with self._engine.connect() as conn:
                 conn.execute(text("PRAGMA journal_mode=WAL;"))
+            
 
             self._session_maker = sessionmaker(
                 autocommit=False, autoflush=False, bind=self._engine
@@ -347,17 +363,25 @@ class MoleculePropStore:
                     ddx_settings=None
                     if not db_conformer.ddx_settings
                     else DBDDXSettings.db_to_instance(db_conformer.ddx_settings)),
-                mulliken_charges = db_conformer.mulliken_charges,
-                lowdin_charges = db_conformer.lowdin_charges,
-                mbis_charges = db_conformer.mbis_charges,
+                mulliken_charges = None if not db_conformer.mulliken_charges 
+                                   else db_conformer.mulliken_charges,
+                lowdin_charges = None if not db_conformer.lowdin_charges
+                                 else  db_conformer.lowdin_charges,
+                mbis_charges = None if not db_conformer.mbis_charges
+                               else db_conformer.mbis_charges,
                 dipole = db_conformer.dipole,
                 quadropole = db_conformer.quadropole,
-                mbis_dipole= db_conformer.mbis_dipole,
-                mbis_quadropole= db_conformer.mbis_quadropole,
-                mbis_octopole= db_conformer.mbis_octopole,
+                mbis_dipole= None if not db_conformer.mbis_dipole
+                              else db_conformer.mbis_dipole,
+                mbis_quadropole= None if not db_conformer.mbis_quadropole
+                              else db_conformer.mbis_quadropole,
+                mbis_octopole= None if not db_conformer.mbis_octopole
+                              else db_conformer.mbis_octopole,
                 energy = db_conformer.energy,
-                alpha_density = db_conformer.alpha_density,
-                beta_density= db_conformer.beta_density,
+                alpha_density = None if not db_conformer.alpha_density
+                               else db_conformer.alpha_density,
+                beta_density= None if not db_conformer.beta_density
+                               else db_conformer.beta_density,
                 charge_model_charges = None
             )
             for db_record in db_records
@@ -391,45 +415,78 @@ class MoleculePropStore:
         else:
             db_record = DBMoleculePropRecord(smiles=smiles)
 
-        # noinspection PyTypeChecker
-        # noinspection PyUnresolvedReferences
-        db_record.conformers.extend(
-            DBConformerPropRecord(
-                tagged_smiles=record.tagged_smiles,
-                coordinates=record.conformer,
-                grid=record.grid_coordinates,
-                esp=record.esp,
-                field=record.electric_field,
-                grid_settings=DBGridSettings.unique(
-                    db, record.esp_settings.grid_settings
+        # Iterate over each record to check if it exists
+        for record in records:
+            existing_conformer = next(
+                (
+                    conformer for conformer in db_record.conformers
+                    if conformer.tagged_smiles == record.tagged_smiles
                 ),
-                pcm_settings=None
-                if not record.esp_settings.pcm_settings
-                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
-                ddx_settings=None 
-                if not record.esp_settings.ddx_settings
-                else  DBDDXSettings.unique(db, record.esp_settings.ddx_settings),
-                esp_settings = DBESPSettings.unique(db, record.esp_settings),
-                mulliken_charges = record.mulliken_charges,
-                lowdin_charges = record.lowdin_charges,
-                mbis_charges = record.mbis_charges,
-                dipole = record.dipole,
-                quadropole = record.quadropole,
-                mbis_dipole= record.mbis_dipole,
-                mbis_quadropole= record.mbis_quadropole,
-                mbis_octopole= record.mbis_octopole,
-                energy = record.energy,
-                alpha_density = record.alpha_density,
-                beta_density= record.beta_density,
-                charge_model_charges = None
+                None
             )
-            for record in records
-        )
+
+            if existing_conformer:
+                # Update the existing conformer record
+                existing_conformer.coordinates = record.conformer
+                existing_conformer.grid = record.grid_coordinates
+                existing_conformer.esp = record.esp
+                existing_conformer.field = record.electric_field
+                existing_conformer.grid_settings = DBGridSettings.unique(db, record.esp_settings.grid_settings)
+                existing_conformer.pcm_settings = None if not record.esp_settings.pcm_settings else DBPCMSettings.unique(db, record.esp_settings.pcm_settings)
+                existing_conformer.ddx_settings = None if not record.esp_settings.ddx_settings else DBDDXSettings.unique(db, record.esp_settings.ddx_settings)
+                existing_conformer.esp_settings = DBESPSettings.unique(db, record.esp_settings)
+                existing_conformer.mulliken_charges = record.mulliken_charges
+                existing_conformer.lowdin_charges = record.lowdin_charges
+                existing_conformer.mbis_charges = record.mbis_charges
+                existing_conformer.dipole = record.dipole
+                existing_conformer.quadropole = record.quadropole
+                existing_conformer.mbis_dipole = record.mbis_dipole
+                existing_conformer.mbis_quadropole = record.mbis_quadropole
+                existing_conformer.mbis_octopole = record.mbis_octopole
+                existing_conformer.energy = record.energy
+                existing_conformer.alpha_density = record.alpha_density
+                existing_conformer.beta_density = record.beta_density
+                existing_conformer.charge_model_charges = None
+            else:
+                # Add a new conformer record
+                db_record.conformers.append(
+                    DBConformerPropRecord(
+                        tagged_smiles=record.tagged_smiles,
+                        coordinates=record.conformer,
+                        grid=record.grid_coordinates,
+                        esp=record.esp,
+                        field=record.electric_field,
+                        grid_settings=DBGridSettings.unique(
+                            db, record.esp_settings.grid_settings
+                        ),
+                        pcm_settings=None
+                        if not record.esp_settings.pcm_settings
+                        else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
+                        ddx_settings=None 
+                        if not record.esp_settings.ddx_settings
+                        else  DBDDXSettings.unique(db, record.esp_settings.ddx_settings),
+                        esp_settings = DBESPSettings.unique(db, record.esp_settings),
+                        mulliken_charges = record.mulliken_charges,
+                        lowdin_charges = record.lowdin_charges,
+                        mbis_charges = record.mbis_charges,
+                        dipole = record.dipole,
+                        quadropole = record.quadropole,
+                        mbis_dipole= record.mbis_dipole,
+                        mbis_quadropole= record.mbis_quadropole,
+                        mbis_octopole= record.mbis_octopole,
+                        energy = record.energy,
+                        alpha_density = record.alpha_density,
+                        beta_density= record.beta_density,
+                        charge_model_charges = None
+                    )
+                )
 
         if existing_db_molecule is None:
             db.add(db_record)
 
         return db_record
+
+
 
     @classmethod
     @functools.lru_cache(10000)

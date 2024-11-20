@@ -4,6 +4,7 @@ import subprocess
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import time
+import traceback
 import jinja2
 import numpy
 from openff.units import unit
@@ -183,6 +184,8 @@ class Psi4Generate:
                 return final_coordinates, grid, esp, electric_field, variables_dictionary, E
             except Exception as e:
                 print(e)
+                traceback.print_exc()  # This will print the full traceback
+                print(traceback.format_exc())  # This will print the full traceback as a string
                 psi4.core.clean()
                 return Psi4Error
   
