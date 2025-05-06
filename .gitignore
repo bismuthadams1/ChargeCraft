@@ -17,3 +17,4 @@ __pycache__/
 */__pycache__/*
 .vscode
 *.pyc
+*.egg-info

@@ -11,9 +11,8 @@ class Conformers:
 
     """
 
-    @classmethod
+    @staticmethod
     def generate(
-        cls,
         molecule: "Molecule",
         max_conformers: int = 10,
         generation_type: str = 'openeye'
@@ -37,16 +36,15 @@ class Conformers:
         """
         
         if generation_type == 'openeye':
-            return cls.openeye_gen(molecule, max_conformers)
+            return Conformers.openeye_gen(molecule, max_conformers)
         elif generation_type == 'rdkit':
-            return cls.rdkit_gen(molecule, max_conformers)
+            return Conformers.rdkit_gen(molecule, max_conformers)
         else:
             return print('invalid conformer generator option')
     
 
-    @classmethod
+    @staticmethod
     def rdkit_gen(
-            cls,
             molecule: "Molecule", 
             max_conformers: int
     ) -> list[numpy.array]:
@@ -84,9 +82,8 @@ class Conformers:
 
         return conformers
 
-    @classmethod
+    @staticmethod
     def openeye_gen(
-        cls,
         molecule: "Molecule",
         max_conformers: int
     ) -> list[numpy.array]:
