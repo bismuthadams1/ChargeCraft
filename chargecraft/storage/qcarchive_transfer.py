@@ -83,11 +83,14 @@ class QCArchiveToLocalDB:
                                                 esp_settings = esp_settings,
                                                 grid = grid)
             else:
-                esp = self.esp_calculator.assign_esp(monopoles=variables_dictionary['MBIS CHARGES'],
+                esp, grid = self.esp_calculator.assign_esp(monopoles=variables_dictionary['MBIS CHARGES'],
                                                      dipoles=variables_dictionary['MBIS DIPOLE'],
                                                      quadropules=variables_dictionary['MBIS QUADRUPOLE'],
                                                      grid=grid,
                                                      coordinates=openff_conformer)
+                esp = esp * unit.atomic_unit_of_energy / unit.elementary_charge
+                grid = grid * unit.angstrom
+                electric_field = None
 
             #sometimes the complete dictionary is not available, move to next item
             if not variables_dictionary:
