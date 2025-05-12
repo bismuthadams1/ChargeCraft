@@ -94,6 +94,9 @@ class ESPCalculator:
             Monopole esp.
         """
         dipoles = dipoles.to(unit.e * unit.bohr)
+        if dipoles.ndim == 1:
+            dipoles = dipoles.reshape((-1, 3))
+
         grid_coordinates = grid_coordinates.reshape((-1, 3)).to(unit.bohr)
         atom_coordinates = atom_coordinates.reshape((-1, 3)).to(unit.bohr)
 
@@ -125,6 +128,8 @@ class ESPCalculator:
         quadrupoles_esp : unit.Quantity
             Monopole esp.
         """
+        if quadrupoles.ndim == 1:
+            quadrupoles = quadrupoles.reshape((-1, 3, 3))
         quadrupoles = self._detrace(quadrupoles.to(unit.e * unit.bohr * unit.bohr))
         grid_coordinates = grid_coordinates.reshape((-1, 3)).to(unit.bohr)
         atom_coordinates = atom_coordinates.reshape((-1, 3)).to(unit.bohr)
