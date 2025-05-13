@@ -282,7 +282,7 @@ class MoleculePropStore:
     # def __init__(self, database_path: str = "prop-store.sqlite"):
     #     return super().__init__(database_path = database_path)
 
-    def __init__(self, database_path: str = "esp-store.sqlite"):
+    def __init__(self, database_path: str = "esp-store.sqlite", cache_size: Optional[int] = None):
             """
 
             Parameters
@@ -291,6 +291,12 @@ class MoleculePropStore:
                 The path to the SQLite database to store to and retrieve data from.
             """
             self._database_url = f"sqlite:///{database_path}"
+
+            if cache_size:
+                @event.listens_for(self._engine, "connect")
+                def set_sqlite_pragma(dbapi_connection, connection_record):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute(f"PRAGMA cache_size = -{cache_size}")  # 20000 pages (~20MB), adjust based on your needs
 
             self._engine = create_engine(self._database_url, echo=False, connect_args={'timeout': 15})
             DBBase.metadata.create_all(self._engine)

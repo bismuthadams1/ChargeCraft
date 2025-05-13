@@ -9,6 +9,7 @@ from openff.recharge.esp import DFTGridSettings
 from openff.recharge.esp.qcresults import reconstruct_density, compute_esp
 from chargecraft.storage.data_classes import ESPSettings, PCMSettings, DDXSettings
 from qcelemental.models import Molecule as QCMolecule
+from tqdm import tqdm
 import numpy
 
 class QCArchiveToLocalDB:
@@ -36,7 +37,7 @@ class QCArchiveToLocalDB:
         items = [record for record in self.qc_archive.query_records(dataset_id=dataset_id)]
         filtered_items = self.filter_items(items, exclude_keys=exclude_keys)
 
-        for item in filtered_items:
+        for item in tqdm(filtered_items, total = len(filtered_items)):
             #ensure orientation is correct
             qc_mol =  item.molecule 
             qc_data = qc_mol.dict()
@@ -108,8 +109,6 @@ class QCArchiveToLocalDB:
                 variables_dictionary= variables_dictionary, 
                 energy = E
             )
-
-            print(record)
 
             self.records.append(record)
             # if we append here we will get unique constraints issues
