@@ -84,7 +84,7 @@ class PropGenerator:
     def ncores(self, value):
         if value is None:
             # Use GlobalConfig to determine the default
-            self._ncores = GlobalConfig.total_threads()
+            self._ncores = GlobalConfig.total_threads
         else:
             self._ncores = value
     
@@ -96,7 +96,7 @@ class PropGenerator:
     def memory(self, value):
         if value is None:
             # Use GlobalConfig to determine the default
-            self._memory = GlobalConfig.memory()
+            self._memory = GlobalConfig.memory
         else:
             self._memory = value
 
