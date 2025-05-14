@@ -1,4 +1,4 @@
-name: chargecraft_qubekit
+name: chargecraft
 channels:
   - conda-forge
 dependencies:

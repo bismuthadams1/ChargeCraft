@@ -15,6 +15,7 @@ from qcelemental.models.procedures import OptimizationInput, QCInputSpecificatio
 from qcelemental import constants
 import copy
 import numpy as np
+import traceback
 from chargecraft.globals import GlobalConfig
 from chargecraft.globals import log_memory_usage
 
@@ -319,6 +320,7 @@ class PropGenerator:
         #Error handling, this can probably be developed. There shouldn't be any issues since the geometry will have already be optmized with geometric. This can be kept for future error handling design
         except Exception as e:
             print(e)
+            print(traceback.format_exc())
             raise Psi4Error 
         #TODO review if commented code was causeing memory leak
         #     if error_level == 0:

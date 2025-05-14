@@ -8,6 +8,7 @@ import jinja2
 import numpy
 from openff.units import unit
 from openff.units.elements import SYMBOLS
+import traceback
 from openff.utilities import get_data_file_path, temporary_cd
 
 from chargecraft.storage.data_classes import ESPSettings, DDXSettings
@@ -35,8 +36,8 @@ class Psi4Generate:
     """
 
    
-    @classmethod
-    def get_properties(cls,
+    @staticmethod
+    def get_properties(
                 molecule: "Molecule",
                 conformer: "QCMolecule",
                 grid: unit.Quantity,
@@ -47,6 +48,7 @@ class Psi4Generate:
                 ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity, dict, int]:
         
         with temporary_cd(directory):
+
             grid = grid.to(unit.angstrom).m
             numpy.savetxt("grid.dat", grid, delimiter=" ", fmt="%16.10f")
 
@@ -82,10 +84,10 @@ class Psi4Generate:
                 print(f'setting extra options: {extra_options}')
                 psi4.set_options(extra_options)
             #Number of threads should be the number of cores * num of threads per core
-            psi4.set_num_threads(GlobalConfig().total_threads())
-            psi4.set_memory(GlobalConfig().memory())
+            psi4.set_num_threads(GlobalConfig.total_threads())
+            psi4.set_memory(GlobalConfig.memory)
             psi4.set_options({"PROPERTIES_ORIGIN":[0,0,0]})
-            print(f'number of threads is {GlobalConfig().total_threads()}')
+            print(f'number of threads is {GlobalConfig.total_threads()}')
             enable_solvent = settings.pcm_settings is not None or settings.ddx_settings is not None
             print(f'settings pcm {settings.pcm_settings}')
             print(f'settings ddx {settings.ddx_settings}')
@@ -93,22 +95,24 @@ class Psi4Generate:
             if enable_solvent:
                 print('setting solvent...')
                 if settings.pcm_settings is not None and settings.pcm_settings.solver is not None:
-                            psi4.set_options({"pcm":True})
-                            psi4.set_options({ "pcm__input":  f"""
-                                            Units = Angstrom
-                                            Medium {{
-                                                SolverType = {settings.pcm_settings.solver}
-                                                Solvent = {settings.pcm_settings.solvent}
-                                            }}
+                    psi4.set_options({"pcm":True})
+                    psi4.set_options(
+                        { "pcm__input":  
+                            f"""
+                            Units = Angstrom
+                            Medium {{
+                                SolverType = {settings.pcm_settings.solver}
+                                Solvent = {settings.pcm_settings.solvent}
+                            }}
 
-                                            Cavity {{
-                                                RadiiSet = {settings.pcm_settings.radii_model} # Bondi | UFF | Allinger
-                                                Type = GePol
-                                                Scaling = {settings.pcm_settings.radii_scaling} # radii for spheres scaled by 1.2
-                                                Area = {settings.pcm_settings.cavity_area}
-                                                Mode = "Implicit"
-                                            }}
-                                            """} )
+                            Cavity {{
+                                RadiiSet = {settings.pcm_settings.radii_model} # Bondi | UFF | Allinger
+                                Type = GePol
+                                Scaling = {settings.pcm_settings.radii_scaling} # radii for spheres scaled by 1.2
+                                Area = {settings.pcm_settings.cavity_area}
+                                Mode = "Implicit"
+                            }}
+                            """} )
                 else:
                     #check if dialetric constant is specified or not
                     if settings.ddx_settings.epsilon is not None:
@@ -130,15 +134,18 @@ class Psi4Generate:
             try:
                 print('memory use before E wfn')
                 log_memory_usage()                
-                E, wfn =  psi4.prop(f'{settings.method}/{settings.basis}', properties=["GRID_ESP",
-                                                                "GRID_FIELD",
-                                                                "MULLIKEN_CHARGES", 
-                                                                "LOWDIN_CHARGES", 
-                                                                "DIPOLE", 
-                                                                "QUADRUPOLE", 
-                                                                "MBIS_CHARGES"], 
-                                                                molecule = molecule_psi4,
-                                                                return_wfn = True)
+                E, wfn =  psi4.prop(
+                    f'{settings.method}/{settings.basis}', properties=[
+                    "GRID_ESP",
+                    "GRID_FIELD",
+                    "MULLIKEN_CHARGES", 
+                    "LOWDIN_CHARGES", 
+                    "DIPOLE", 
+                    "QUADRUPOLE", 
+                    "MBIS_CHARGES"], 
+                    molecule = molecule_psi4,
+                    return_wfn = True
+                )
                 
                 print('memory use after E wfn')
                 print('sleep for 10 seconds')
@@ -183,6 +190,7 @@ class Psi4Generate:
                 return final_coordinates, grid, esp, electric_field, variables_dictionary, E
             except Exception as e:
                 print(e)
+                print(traceback.format_exc())
                 psi4.core.clean()
                 return Psi4Error
   
