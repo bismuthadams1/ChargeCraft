@@ -2,16 +2,13 @@
 import os
 import sys
 
-#sys.path.append("/Users/joshuahorton/Documents/Software/QM_ESP_Psi4")
-
 from qubekit.molecules import Ligand, Dipole, Quadrupole
 from qubekit.nonbonded.virtual_sites import VirtualSites
 from chargecraft.storage.storage import MoleculePropStore
 from openff.toolkit.topology import Molecule
 from openff.units import unit
 
-# prop_store = MoleculePropStore(database_path="/properties_store.db")
-prop_store = MoleculePropStore(database_path='/Users/localadmin/Documents/projects/Comparison_with_QM/RinnickerTest/ESP_check/properties_store.db')
+prop_store = MoleculePropStore(database_path='./properties_store.db')
 vs = VirtualSites()
 
 for smiles in prop_store.list():
